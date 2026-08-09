@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ten small, hardened command-line tools rebuilt from Python sketches in native C11.">
+  <meta name="theme-color" content="#08110f">
+  <meta property="og:title" content="pydev — small tools, rebuilt properly">
+  <meta property="og:description" content="A compact native C11 toolkit with bounded inputs, sanitizer checks, and no shell injection.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://drmbios.github.io/pydev/">
+  <meta property="og:image" content="https://drmbios.github.io/pydev/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>pydev — Native C11 command-line tools</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="pydev home"><span>~/</span>pydev</a>
+    <nav aria-label="Main navigation">
+      <a href="#tools">Tools</a>
+      <a href="#security">Security</a>
+      <a href="#build">Build</a>
+      <a class="nav-github" href="https://github.com/drmbios/pydev">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="pulse"></span> C11 · POSIX · OPEN SOURCE</p>
+        <h1>Small tools.<br><em>Rebuilt properly.</em></h1>
+        <p class="lede">Ten early Python experiments evolved into focused native command-line tools—with careful memory ownership, bounded inputs, and tests designed to break them.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#build">Build the toolkit</a>
+          <a class="button secondary" href="https://github.com/drmbios/pydev">View source ↗</a>
+        </div>
+        <dl class="metrics" aria-label="Project highlights">
+          <div><dt>10</dt><dd>native tools</dd></div>
+          <div><dt>16 MiB</dt><dd>input ceiling</dd></div>
+          <div><dt>0</dt><dd>shell calls</dd></div>
+        </dl>
+      </div>
+      <div class="terminal" aria-label="Example terminal session">
+        <div class="terminal-bar"><span></span><span></span><span></span><b>pydev — zsh</b></div>
+        <pre><code><span class="dim">$</span> git clone https://github.com/drmbios/pydev
+<span class="dim">$</span> cd pydev &amp;&amp; make
+<span class="ok">✓</span> built 10 native tools
+
+<span class="dim">$</span> bin/cntr README.md
+a 131
+b 12
+c 38
+<span class="cursor">▋</span></code></pre>
+        <div class="terminal-note">STRICT WARNINGS <span>·</span> ASAN <span>·</span> UBSAN</div>
+      </div>
+    </section>
+
+    <section class="marquee" aria-label="Project technologies">
+      <div>C11 <span>◆</span> SQLITE <span>◆</span> POSIX <span>◆</span> ADDRESSSANITIZER <span>◆</span> MAKE <span>◆</span> ZERO SHELL INJECTION</div>
+    </section>
+
+    <section class="section tools-section" id="tools">
+      <div class="section-heading">
+        <div><p class="eyebrow">01 / THE TOOLBOX</p><h2>One job. One binary.</h2></div>
+        <p>Each utility stays deliberately small, composable, and predictable—the Unix philosophy without the mystery behavior.</p>
+      </div>
+      <div class="tool-grid">
+        <article class="tool-card featured"><span class="tool-number">01</span><div class="tool-icon">#</div><h3>cntr</h3><p>Fast, case-insensitive ASCII letter frequency analysis for any text file.</p><code>cntr FILE</code></article>
+        <article class="tool-card"><span class="tool-number">02</span><div class="tool-icon">••••</div><h3>codebreaker</h3><p>A Mastermind-style four-digit terminal game with secure randomness and feedback.</p><code>codebreaker [ATTEMPTS]</code></article>
+        <article class="tool-card"><span class="tool-number">03</span><div class="tool-icon">&lt;a&gt;</div><h3>parser_html</h3><p>Extract quoted link destinations from bounded HTML input in linear time.</p><code>parser_html FILE</code></article>
+        <article class="tool-card"><span class="tool-number">04</span><div class="tool-icon">pip</div><h3>qpipper</h3><p>Search or install packages through a shell-free, injection-resistant launcher.</p><code>qpipper ACTION PACKAGE</code></article>
+        <article class="tool-card"><span class="tool-number">05</span><div class="tool-icon">{ }</div><h3>JSON viewers</h3><p>Inspect compact or formatted JSON with explicit input and nesting limits.</p><code>readjson FILE</code></article>
+        <article class="tool-card"><span class="tool-number">06</span><div class="tool-icon">DB</div><h3>sql</h3><p>Store and update question-answer entries using prepared SQLite statements.</p><code>sql DB add NAME ANSWER</code></article>
+        <article class="tool-card"><span class="tool-number">07</span><div class="tool-icon">@</div><h3>contacts</h3><p>Pull names and telephone numbers from vCard files into a clean summary.</p><code>contacts FILE.vcf</code></article>
+        <article class="tool-card"><span class="tool-number">08</span><div class="tool-icon">X/O</div><h3>ttt</h3><p>A complete local two-player tic-tac-toe game with guarded input.</p><code>ttt</code></article>
+        <article class="tool-card"><span class="tool-number">09</span><div class="tool-icon">W</div><h3>write2file</h3><p>A bounded, error-aware text writer for quick terminal workflows.</p><code>write2file FILE TEXT</code></article>
+      </div>
+    </section>
+
+    <section class="security" id="security">
+      <div class="security-copy">
+        <p class="eyebrow">02 / BUILT DEFENSIVELY</p>
+        <h2>Inputs are hostile.<br>Tools should be calm.</h2>
+        <p>These utilities assume files can be oversized, strings malformed, and arguments malicious. Limits are part of the product—not an afterthought.</p>
+        <a href="https://github.com/drmbios/pydev/tree/master/tests">Explore the abuse tests ↗</a>
+      </div>
+      <ul class="security-list">
+        <li><span>16 MiB</span><div><strong>Bounded file reads</strong><p>Oversized input is rejected before parsing or allocation.</p></div></li>
+        <li><span>128</span><div><strong>Maximum JSON depth</strong><p>Nesting is capped to resist pathological documents.</p></div></li>
+        <li><span>execvp</span><div><strong>No command shell</strong><p>Package arguments never become executable shell syntax.</p></div></li>
+        <li><span>ASAN</span><div><strong>Memory checked</strong><p>Address and undefined-behavior sanitizers run across the suite.</p></div></li>
+      </ul>
+    </section>
+
+    <section class="section build-section" id="build">
+      <div class="section-heading">
+        <div><p class="eyebrow">03 / GET STARTED</p><h2>Three commands.</h2></div>
+        <p>You need a C11 compiler, Make, and the SQLite 3 development library. Python is only required for the optional pip wrapper.</p>
+      </div>
+      <div class="command-box">
+        <div class="command-tabs"><span>BUILD</span><button type="button" id="copy-command" aria-label="Copy build commands">COPY</button></div>
+        <pre id="build-command"><code><span>$</span> git clone https://github.com/drmbios/pydev.git
+<span>$</span> cd pydev
+<span>$</span> make &amp;&amp; make check</code></pre>
+      </div>
+      <div class="build-links">
+        <a href="https://github.com/drmbios/pydev#pydev-native-tools"><span>README</span><b>Full documentation →</b></a>
+        <a href="https://github.com/drmbios/pydev/blob/master/LICENSE"><span>LICENSE</span><b>Apache 2.0 →</b></a>
+        <a href="https://github.com/drmbios/pydev/pulls"><span>CONTRIBUTE</span><b>Open a pull request →</b></a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a class="brand" href="#top"><span>~/</span>pydev</a>
+    <p>Built close to the metal by <a href="https://github.com/drmbios">@drmbios</a>.</p>
+    <p>Apache-2.0 · <span id="year"></span></p>
+  </footer>
+</body>
+</html>

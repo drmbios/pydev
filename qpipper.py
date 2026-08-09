@@ -1,46 +1,26 @@
-#created by drmbios aka nixster
-import pip
-import shutil
-import os
-print('...:::Welcome to qpipper:::...')
-print('qpipper is a tool for downloading and installing python modules manually.')
-print('')
-print('Please select one of 2 options:')
-print('')
-x = str(input('Type search/install: '))
-y = str(input('Type module name: '))
+"""A small wrapper around the current Python interpreter's pip command."""
 
-pip.main([x, y])
-#os.chdir('/sdcard/qpython/lib/python3.2/site-packages/')
-#fldr ='/sdcard/qpython/cache/pip-build/'
-#os.mkdir(y, 0o755)
-des = '/sdcard/qpython/lib/python3.2/site-packages/'
-os.chdir('/sdcard/qpython/cache/pip-build/{}/'.format(y))
-#os.listdir(fldr)
-try:
-        
-    for file in y:
-        shutil.move(y, des)
-    print('{} module manually installed!'.format(y))
-    print('All installation comlete, thx!')
-except Exception:
-    print('-' * 25)
-    print('Module {} downloaded succesfully!'.format(y))
-except OSError:
-    print('Already downloaded and installed!!!')
-except shutil.Error:
-    print('Downloaded and installed succesfully')
-    
-else:
-    try:
-        pip.main([x, y])
-        shutil.move(fldr, des)
-        print('{} module download and manually installed!'.format(y))
-        print('All installation comlete, thx!')
-    except Exception:
-        print('*' * 33)
-        print('Module {} downloaded succesfully!'.format(y))
-    except OSError:
-        print('Already downloaded and installed!!!')
-    except shutil.Error:
-        print('Downloaded and installed succesfully')    
+import argparse
+import subprocess
+import sys
+
+
+def run_pip(action: str, package: str) -> int:
+    command = [sys.executable, "-m", "pip"]
+    if action == "search":
+        command.extend(["index", "versions", package])
+    else:
+        command.extend(["install", package])
+    return subprocess.run(command, check=False).returncode
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("search", "install"))
+    parser.add_argument("package", help="package name or install specifier")
+    args = parser.parse_args()
+    raise SystemExit(run_pip(args.action, args.package))
+
+
+if __name__ == "__main__":
+    main()
