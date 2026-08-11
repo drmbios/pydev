@@ -1,0 +1,29 @@
+name: C tool quality checks
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SQLite development files
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - name: Strict release build and tests
+        run: make clean && make -j2 && make check
+      - name: Build without SQLite
+        run: make check-no-sqlite
+      - name: Address and undefined-behavior sanitizers
+        run: make sanitize

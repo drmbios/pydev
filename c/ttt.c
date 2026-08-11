@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 static const int wins[8][3] = {
     {0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}
@@ -30,9 +31,17 @@ int main(void) {
         long position; char *end;
         draw(board); printf("Player %c, choose 1-9: ", player); fflush(stdout);
         if (!fgets(line, sizeof line, stdin)) { fputs("input ended\n", stderr); return 1; }
+        if (!strchr(line, '\n') && !feof(stdin)) {
+            int character;
+            while ((character = getchar()) != '\n' && character != EOF) {}
+            puts("Invalid position: input is too long.");
+            continue;
+        }
+        errno = 0;
         position = strtol(line, &end, 10);
         while (*end == ' ' || *end == '\t') end++;
-        if (position < 1 || position > 9 || (*end != '\n' && *end != '\0')) { puts("Invalid position."); continue; }
+        if (errno || end == line || position < 1 || position > 9 ||
+            (*end != '\n' && *end != '\0')) { puts("Invalid position."); continue; }
         if (board[position - 1]) { puts("That position is occupied."); continue; }
         board[position - 1] = player; turns++; player = player == 'X' ? 'O' : 'X';
     }
