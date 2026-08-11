@@ -3,14 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Ten small, hardened command-line tools rebuilt from Python sketches in native C11.">
+  <meta name="description" content="Sixteen small, hardened command-line tools built in native C11.">
   <meta name="theme-color" content="#08110f">
   <meta property="og:title" content="pydev — small tools, rebuilt properly">
-  <meta property="og:description" content="A compact native C11 toolkit with bounded inputs, sanitizer checks, and no shell injection.">
+  <meta property="og:description" content="Sixteen native C11 tools with bounded inputs, sanitizer checks, and no shell injection.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://drmbios.github.io/pydev/">
-  <meta property="og:image" content="https://drmbios.github.io/pydev/og.png">
-  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:card" content="summary">
   <title>pydev — Native C11 command-line tools</title>
   <link rel="stylesheet" href="style.css">
   <script src="script.js" defer></script>
@@ -32,13 +31,13 @@
       <div class="hero-copy">
         <p class="eyebrow"><span class="pulse"></span> C11 · POSIX · OPEN SOURCE</p>
         <h1>Small tools.<br><em>Rebuilt properly.</em></h1>
-        <p class="lede">Ten early Python experiments evolved into focused native command-line tools—with careful memory ownership, bounded inputs, and tests designed to break them.</p>
+        <p class="lede">Early Python experiments evolved into sixteen focused native command-line tools—with careful memory ownership, bounded inputs, and tests designed to break them.</p>
         <div class="hero-actions">
           <a class="button primary" href="#build">Build the toolkit</a>
           <a class="button secondary" href="https://github.com/drmbios/pydev">View source ↗</a>
         </div>
         <dl class="metrics" aria-label="Project highlights">
-          <div><dt>10</dt><dd>native tools</dd></div>
+          <div><dt>16</dt><dd>native tools</dd></div>
           <div><dt>16 MiB</dt><dd>input ceiling</dd></div>
           <div><dt>0</dt><dd>shell calls</dd></div>
         </dl>
@@ -47,7 +46,7 @@
         <div class="terminal-bar"><span></span><span></span><span></span><b>pydev — zsh</b></div>
         <pre><code><span class="dim">$</span> git clone https://github.com/drmbios/pydev
 <span class="dim">$</span> cd pydev &amp;&amp; make
-<span class="ok">✓</span> built 10 native tools
+<span class="ok">✓</span> built 16 native tools
 
 <span class="dim">$</span> bin/cntr README.md
 a 131
@@ -77,6 +76,12 @@ c 38
         <article class="tool-card"><span class="tool-number">07</span><div class="tool-icon">@</div><h3>contacts</h3><p>Pull names and telephone numbers from vCard files into a clean summary.</p><code>contacts FILE.vcf</code></article>
         <article class="tool-card"><span class="tool-number">08</span><div class="tool-icon">X/O</div><h3>ttt</h3><p>A complete local two-player tic-tac-toe game with guarded input.</p><code>ttt</code></article>
         <article class="tool-card"><span class="tool-number">09</span><div class="tool-icon">W</div><h3>write2file</h3><p>A bounded, error-aware text writer for quick terminal workflows.</p><code>write2file FILE TEXT</code></article>
+        <article class="tool-card"><span class="tool-number">10</span><div class="tool-icon">CRC</div><h3>checksum</h3><p>Calculate standard CRC-32 values for fast file integrity comparisons.</p><code>checksum FILE...</code></article>
+        <article class="tool-card"><span class="tool-number">11</span><div class="tool-icon">0x</div><h3>hexview</h3><p>Inspect binary data as aligned hexadecimal bytes and printable ASCII.</p><code>hexview FILE [MAX_BYTES]</code></article>
+        <article class="tool-card"><span class="tool-number">12</span><div class="tool-icon">str</div><h3>stringsx</h3><p>Extract meaningful printable runs from bounded binary input.</p><code>stringsx FILE [MIN_LENGTH]</code></article>
+        <article class="tool-card"><span class="tool-number">13</span><div class="tool-icon">***</div><h3>randpass</h3><p>Generate secure passwords from unbiased operating-system randomness.</p><code>randpass [LENGTH]</code></article>
+        <article class="tool-card"><span class="tool-number">14</span><div class="tool-icon">SYS</div><h3>syscallx</h3><p>Translate Linux x86-64 syscall numbers into names and plain-language explanations.</p><code>syscallx NUMBER...</code></article>
+        <article class="tool-card"><span class="tool-number">15</span><div class="tool-icon">LS</div><h3>lsx</h3><p>List files with numeric permissions and true recursive directory sizes.</p><code>lsx [-aSr] [PATH]</code></article>
       </div>
     </section>
 
@@ -89,9 +94,9 @@ c 38
       </div>
       <ul class="security-list">
         <li><span>16 MiB</span><div><strong>Bounded file reads</strong><p>Oversized input is rejected before parsing or allocation.</p></div></li>
-        <li><span>128</span><div><strong>Maximum JSON depth</strong><p>Nesting is capped to resist pathological documents.</p></div></li>
+        <li><span>128</span><div><strong>Validated JSON depth</strong><p>Grammar, nesting, and output growth are checked before rendering.</p></div></li>
         <li><span>execvp</span><div><strong>No command shell</strong><p>Package arguments never become executable shell syntax.</p></div></li>
-        <li><span>ASAN</span><div><strong>Memory checked</strong><p>Address and undefined-behavior sanitizers run across the suite.</p></div></li>
+        <li><span>ASAN</span><div><strong>Memory checked</strong><p>Sanitizers, special-file rejection, and symlink tests run across the suite.</p></div></li>
       </ul>
     </section>
 
