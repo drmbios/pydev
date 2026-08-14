@@ -83,6 +83,42 @@ ln -s . "$tmp/listing/self-link"
 "$root/bin/lsx" "$tmp/listing" | grep -Eq 'LINK +1 B +self-link$'
 "$root/bin/lsx" -S "$tmp/listing" | awk 'NR == 3 { if ($NF != "sub") exit 1 }'
 
+if test "$(uname -s)" = Linux; then
+    # traceflow launches its own harmless child; it never attaches to an existing PID.
+    "$root/bin/traceflow" /bin/true > "$tmp/traceflow.txt"
+    grep -q 'exec' "$tmp/traceflow.txt"
+    grep -q 'exited=0' "$tmp/traceflow.txt"
+
+    "$root/bin/syswatch" --interval 1 --count 1 --log "$tmp/metrics" > "$tmp/syswatch.txt"
+    grep -q 'CPU' "$tmp/syswatch.txt"
+    for metric in cpu memory network disk load; do
+        test -s "$tmp/metrics/$metric.csv"
+    done
+    printf 'Linux demo\n12:00:00 CPU %%user\n\001unsafe\n' > "$tmp/sar.txt"
+    "$root/bin/syswatch" --sar "$tmp/sar.txt" | grep -q '?unsafe'
+    ln -s "$tmp/sar.txt" "$tmp/sar-link"
+    if "$root/bin/syswatch" --sar "$tmp/sar-link" >/dev/null 2>&1; then
+        echo "syswatch followed a SAR symlink" >&2
+        exit 1
+    fi
+    ln -s "$tmp/metrics" "$tmp/metrics-link"
+    if "$root/bin/syswatch" --interval 1 --count 1 --log "$tmp/metrics-link" >/dev/null 2>&1; then
+        echo "syswatch accepted a symlink log directory" >&2
+        exit 1
+    fi
+
+    "$root/bin/procexp" 1 | grep -q 'environment values are intentionally hidden'
+    if "$root/bin/procexp" 2147483647 >/dev/null 2>&1; then
+        echo "procexp accepted an unavailable PID" >&2
+        exit 1
+    fi
+    if "$root/bin/sessionx" --terminate root >/dev/null 2>"$tmp/sessionx.err"; then
+        echo "sessionx accepted root termination" >&2
+        exit 1
+    fi
+    grep -q 'refusing to terminate root' "$tmp/sessionx.err"
+fi
+
 # Oversized inputs must be rejected before allocation or parsing.
 dd if=/dev/zero of="$tmp/oversized" bs=1048576 count=17 2>/dev/null
 if "$root/bin/cntr" "$tmp/oversized" >/dev/null 2>&1; then

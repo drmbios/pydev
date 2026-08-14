@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Sixteen small, hardened command-line tools built in native C11.">
+  <meta name="description" content="Twenty small, hardened command-line tools built in native C11.">
   <meta name="theme-color" content="#08110f">
   <meta property="og:title" content="pydev — small tools, rebuilt properly">
-  <meta property="og:description" content="Sixteen native C11 tools with bounded inputs, sanitizer checks, and no shell injection.">
+  <meta property="og:description" content="Twenty native C11 tools with bounded inputs, sanitizer checks, and guarded Linux administration.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://drmbios.github.io/pydev/">
   <meta name="twitter:card" content="summary">
@@ -31,13 +31,13 @@
       <div class="hero-copy">
         <p class="eyebrow"><span class="pulse"></span> C11 · POSIX · OPEN SOURCE</p>
         <h1>Small tools.<br><em>Rebuilt properly.</em></h1>
-        <p class="lede">Early Python experiments evolved into sixteen focused native command-line tools—with careful memory ownership, bounded inputs, and tests designed to break them.</p>
+        <p class="lede">Early Python experiments evolved into twenty focused native command-line tools—with careful memory ownership, bounded inputs, Linux administration, and tests designed to break them.</p>
         <div class="hero-actions">
           <a class="button primary" href="#build">Build the toolkit</a>
           <a class="button secondary" href="https://github.com/drmbios/pydev">View source ↗</a>
         </div>
         <dl class="metrics" aria-label="Project highlights">
-          <div><dt>16</dt><dd>native tools</dd></div>
+          <div><dt>20</dt><dd>native tools</dd></div>
           <div><dt>16 MiB</dt><dd>input ceiling</dd></div>
           <div><dt>0</dt><dd>shell calls</dd></div>
         </dl>
@@ -46,7 +46,7 @@
         <div class="terminal-bar"><span></span><span></span><span></span><b>pydev — zsh</b></div>
         <pre><code><span class="dim">$</span> git clone https://github.com/drmbios/pydev
 <span class="dim">$</span> cd pydev &amp;&amp; make
-<span class="ok">✓</span> built 16 native tools
+<span class="ok">✓</span> built 20 native tools
 
 <span class="dim">$</span> bin/cntr README.md
 a 131
@@ -82,6 +82,10 @@ c 38
         <article class="tool-card"><span class="tool-number">13</span><div class="tool-icon">***</div><h3>randpass</h3><p>Generate secure passwords from unbiased operating-system randomness.</p><code>randpass [LENGTH]</code></article>
         <article class="tool-card"><span class="tool-number">14</span><div class="tool-icon">SYS</div><h3>syscallx</h3><p>Translate Linux x86-64 syscall numbers into names and plain-language explanations.</p><code>syscallx NUMBER...</code></article>
         <article class="tool-card"><span class="tool-number">15</span><div class="tool-icon">LS</div><h3>lsx</h3><p>List files with numeric permissions and true recursive directory sizes.</p><code>lsx [-aSr] [PATH]</code></article>
+        <article class="tool-card featured"><span class="tool-number">16</span><div class="tool-icon">TR</div><h3>traceflow</h3><p>Trace syscalls and forked process dependencies as an indented tree.</p><code>traceflow COMMAND [ARG...]</code></article>
+        <article class="tool-card"><span class="tool-number">17</span><div class="tool-icon">CPU</div><h3>syswatch</h3><p>Combine CPU, memory, load, disk, and network graphs with separate CSV logs.</p><code>syswatch --count 10 --log logs</code></article>
+        <article class="tool-card"><span class="tool-number">18</span><div class="tool-icon">USR</div><h3>sessionx</h3><p>Map logged-in users to their processes and safely dry-run session termination.</p><code>sessionx --terminate USER</code></article>
+        <article class="tool-card"><span class="tool-number">19</span><div class="tool-icon">PID</div><h3>procexp</h3><p>Inspect process owners, memory, threads, executables, and open descriptor counts.</p><code>procexp [PID]</code></article>
       </div>
     </section>
 

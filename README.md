@@ -40,6 +40,10 @@ Executables are written to `bin/`:
 - `randpass [LENGTH]` — securely generate an unbiased random password
 - `syscallx NUMBER...` — translate Linux x86-64 syscall numbers into readable explanations
 - `lsx [-aSr] [PATH]` — list entries with numeric permissions and recursive real sizes
+- `traceflow COMMAND [ARG...]` — trace syscall and child-process dependencies as a tree (Linux x86-64)
+- `syswatch [--interval SEC] [--count N] [--log DIR]` — combined CPU, memory, load, disk, and network dashboard (Linux)
+- `sessionx [--terminate USER [--confirm]]` — list login sessions and owned processes, with guarded termination (Linux)
+- `procexp [PID]` — process explorer with ownership, memory, threads, executable, and descriptor counts (Linux)
 
 `syscallx` reads the host's Linux x86-64 `unistd_64.h` table when available,
 giving it coverage of the syscalls supported by the installed kernel headers.
@@ -50,6 +54,21 @@ development machines that do not ship Linux headers.
 entry types, and totals directory contents recursively using B/KB/MB/GB/TB/PB
 units. Use `-a` for hidden entries, `-S` for largest-first sorting, and `-r` to
 reverse the order. Symbolic links are measured but never followed.
+
+`traceflow` launches and traces a command, follows fork/vfork/clone/exec events,
+and renders syscall activity beneath each child process. It deliberately does
+not attach to arbitrary running processes. `syswatch` reads bounded Linux
+`/proc` metrics, draws terminal bars, and can append separate `cpu.csv`,
+`memory.csv`, `network.csv`, `disk.csv`, and `load.csv` files. Use
+`syswatch --sar FILE` to safely view exported text from `sar`; binary sysstat
+archives must first be converted with the system `sar` command.
+
+`sessionx` shows interactive logins and processes owned by each account. A
+termination request is a dry run unless `--confirm` is supplied. It always
+refuses root, PID 1, and itself, and rechecks process ownership immediately
+before sending SIGTERM. `procexp` provides a compact process inventory and
+detailed PID view while intentionally omitting environment variables, which
+often contain API keys and other secrets.
 
 The build automatically detects SQLite's header and library together. When
 they are unavailable, every other tool still builds and `sql --backend`
@@ -67,6 +86,8 @@ the fallback build explicitly.
 - Added bounded HTML, JSON, text, and vCard readers.
 - Added checksum, binary inspection, string extraction, and secure password tools.
 - Added syscall translation and recursive numeric-permission directory listing.
+- Added dependency-tree syscall tracing, unified system monitoring, guarded
+  session management, and Sysinternals-style process inspection.
 - Added repeatable functional, oversized-input, and injection-resistance tests.
 
 ## Safety and resource limits
@@ -80,6 +101,9 @@ Security limits:
 - Interactive input and database fields have explicit limits.
 - `qpipper` calls `execvp` directly and never invokes a shell.
 - `write2file` refuses symbolic-link targets and closes descriptors on every path.
+- Runtime process scans and trace tracking have hard entry limits.
+- Monitoring logs refuse symbolic-link files and are created with user-only permissions.
+- Session termination is dry-run by default and cannot target root, PID 1, or the caller.
 - The sanitizer target checks address, leak, and undefined-behavior errors where
   supported by the host compiler.
 
