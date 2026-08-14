@@ -5,7 +5,8 @@ LDFLAGS ?=
 BIN_DIR := bin
 COMMON := c/common.c
 TOOLS := cntr codebreaker parser_html qpipper rdr2dot0 readjson sql contacts ttt write2file \
-	checksum hexview stringsx randpass syscallx lsx traceflow syswatch sessionx procexp
+	checksum hexview stringsx randpass syscallx lsx traceflow syswatch sessionx procexp \
+	coreinfo clockres numconv linkscan autostartx whoisx
 SQLITE_PROBE_CFLAGS := $(filter-out -g,$(CFLAGS))
 SQLITE_AVAILABLE ?= $(shell $(CC) $(CPPFLAGS) $(SQLITE_PROBE_CFLAGS) c/sqlite_probe.c $(LDFLAGS) -lsqlite3 -o /dev/null >/dev/null 2>&1 && echo 1 || echo 0)
 

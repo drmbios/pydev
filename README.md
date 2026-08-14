@@ -44,6 +44,12 @@ Executables are written to `bin/`:
 - `syswatch [--interval SEC] [--count N] [--log DIR]` — combined CPU, memory, load, disk, and network dashboard (Linux)
 - `sessionx [--terminate USER [--confirm]]` — list login sessions and owned processes, with guarded termination (Linux)
 - `procexp [PID]` — process explorer with ownership, memory, threads, executable, and descriptor counts (Linux)
+- `coreinfo` — hardware, kernel, CPU, page-size, and physical-memory summary
+- `clockres` — show the resolution of available POSIX system clocks
+- `numconv NUMBER` — safely convert decimal, hexadecimal, octal, and binary integers
+- `linkscan FILE [ROOT]` — find every hard link sharing a file's device and inode
+- `autostartx` — inventory standard Linux and macOS startup locations without executing entries
+- `whoisx [--server HOST] NAME` — bounded WHOIS client with DNS and socket timeouts
 
 `syscallx` reads the host's Linux x86-64 `unistd_64.h` table when available,
 giving it coverage of the syscalls supported by the installed kernel headers.
@@ -69,6 +75,27 @@ refuses root, PID 1, and itself, and rechecks process ownership immediately
 before sending SIGTERM. `procexp` provides a compact process inventory and
 detailed PID view while intentionally omitting environment variables, which
 often contain API keys and other secrets.
+
+## Unix utility-suite mapping
+
+The project provides Unix-native equivalents inspired by the troubleshooting
+categories in the Sysinternals Suite and NirSoft utility catalog. They are not
+copies of Windows APIs or user interfaces:
+
+| Windows utility family | pydev terminal equivalent |
+| --- | --- |
+| Process Monitor / ProcDump | `traceflow`, `syswatch` |
+| Process Explorer / PsList | `procexp`, `sessionx` |
+| Coreinfo / ClockRes | `coreinfo`, `clockres` |
+| Hex2dec | `numconv` |
+| FindLinks / Disk Usage | `linkscan`, `lsx` |
+| Autoruns | `autostartx` |
+| Whois | `whoisx` |
+| Strings / file inspection | `stringsx`, `hexview`, `checksum` |
+
+Credential and password-recovery utilities are intentionally excluded: pydev
+does not extract browser passwords, wireless keys, authentication tokens, or
+operating-system credential stores.
 
 The build automatically detects SQLite's header and library together. When
 they are unavailable, every other tool still builds and `sql --backend`
