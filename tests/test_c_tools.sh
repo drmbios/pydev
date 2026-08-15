@@ -83,6 +83,27 @@ ln -s . "$tmp/listing/self-link"
 "$root/bin/lsx" "$tmp/listing" | grep -Eq 'LINK +1 B +self-link$'
 "$root/bin/lsx" -S "$tmp/listing" | awk 'NR == 3 { if ($NF != "sub") exit 1 }'
 
+"$root/bin/coreinfo" | grep -q '^architecture'
+"$root/bin/clockres" | grep -q '^monotonic'
+"$root/bin/numconv" 0xff | grep -q '^decimal: 255$'
+if "$root/bin/numconv" 18446744073709551616 >/dev/null 2>&1; then
+    echo "numconv accepted an overflowing integer" >&2
+    exit 1
+fi
+printf 'linked' > "$tmp/link-a"
+ln "$tmp/link-a" "$tmp/link-b"
+test "$("$root/bin/linkscan" "$tmp/link-a" "$tmp" 2>/dev/null | grep -c '/link-[ab]$')" -eq 2
+ln "$tmp/link-a" "$tmp/bad-$(printf '\033')name"
+if "$root/bin/linkscan" "$tmp/link-a" "$tmp" 2>/dev/null | LC_ALL=C grep -q "$(printf '\033')"; then
+    echo "linkscan emitted a terminal control character" >&2
+    exit 1
+fi
+"$root/bin/autostartx" >/dev/null
+if "$root/bin/whoisx" 'bad query' >/dev/null 2>&1; then
+    echo "whoisx accepted control/space characters" >&2
+    exit 1
+fi
+
 if test "$(uname -s)" = Linux; then
     # traceflow launches its own harmless child; it never attaches to an existing PID.
     "$root/bin/traceflow" /bin/true > "$tmp/traceflow.txt"
