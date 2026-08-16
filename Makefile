@@ -6,7 +6,7 @@ BIN_DIR := bin
 COMMON := c/common.c
 TOOLS := cntr codebreaker parser_html qpipper rdr2dot0 readjson sql contacts ttt write2file \
 	checksum hexview stringsx randpass syscallx lsx traceflow syswatch sessionx procexp \
-	coreinfo clockres numconv linkscan autostartx whoisx
+	coreinfo clockres numconv linkscan autostartx whoisx antivermis
 SQLITE_PROBE_CFLAGS := $(filter-out -g,$(CFLAGS))
 SQLITE_AVAILABLE ?= $(shell $(CC) $(CPPFLAGS) $(SQLITE_PROBE_CFLAGS) c/sqlite_probe.c $(LDFLAGS) -lsqlite3 -o /dev/null >/dev/null 2>&1 && echo 1 || echo 0)
 
@@ -46,6 +46,8 @@ $(BIN_DIR)/randpass: c/randpass.c $(COMMON) c/common.h | $(BIN_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(COMMON) $(LDFLAGS) -o $@
 $(BIN_DIR)/syscallx: c/syscallx.c $(COMMON) c/common.h | $(BIN_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(COMMON) $(LDFLAGS) -o $@
+$(BIN_DIR)/antivermis: c/antivermis.c c/av_sha256.c $(COMMON) c/av_sha256.h c/common.h | $(BIN_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) c/antivermis.c c/av_sha256.c $(COMMON) $(LDFLAGS) -o $@
 $(BIN_DIR)/sql: c/sql.c | $(BIN_DIR)
 	$(CC) $(CPPFLAGS) $(SQLITE_CPPFLAGS) $(CFLAGS) $< $(LDFLAGS) $(SQLITE_LIBS) -o $@
 $(BIN_DIR)/%: c/%.c | $(BIN_DIR)

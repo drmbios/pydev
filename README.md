@@ -50,6 +50,7 @@ Executables are written to `bin/`:
 - `linkscan FILE [ROOT]` — find every hard link sharing a file's device and inode
 - `autostartx` — inventory standard Linux and macOS startup locations without executing entries
 - `whoisx [--server HOST] NAME` — bounded WHOIS client with DNS and socket timeouts
+- `antivermis [OPTIONS] PATH...` — read-only malware, miner, persistence, and rootkit-indicator scanner
 
 `syscallx` reads the host's Linux x86-64 `unistd_64.h` table when available,
 giving it coverage of the syscalls supported by the installed kernel headers.
@@ -92,10 +93,39 @@ copies of Windows APIs or user interfaces:
 | Autoruns | `autostartx` |
 | Whois | `whoisx` |
 | Strings / file inspection | `stringsx`, `hexview`, `checksum` |
+| Threat hunting | `antivermis` |
 
 Credential and password-recovery utilities are intentionally excluded: pydev
 does not extract browser passwords, wireless keys, authentication tokens, or
 operating-system credential stores.
+
+## Antivermis threat scanner
+
+`antivermis` is a pure-C, read-only threat-hunting scanner for Linux and macOS.
+It streams regular files through SHA-256, optionally checks a local signature
+database, and reports explainable indicators such as compound Stratum/miner
+strings, download-and-execute scripts, risky executables in temporary storage,
+set-id or world-writable executables, unsafe persistence entries, and non-empty
+Linux loader-preload configuration.
+
+```sh
+bin/antivermis ~/Downloads /tmp
+bin/antivermis --system
+bin/antivermis --db signatures.txt ~/Downloads
+```
+
+Signature database lines contain a 64-character SHA-256 digest, whitespace,
+and a short label. Scans default to 100,000 files, 32 MiB per file, 1 GiB total,
+64 directory levels, and 10,000 findings. `--max-files N` and
+`--max-bytes MiB` can lower or raise selected limits within hard ceilings.
+Symlinks, FIFOs, devices, and sockets are never followed or read.
+
+Exit status `0` means a complete scan with no findings, `1` means findings were
+reported, and `2` means invalid configuration or incomplete coverage caused by
+errors or limits. Antivermis does not delete, quarantine, kill, upload hashes,
+read credential stores, or promise that a machine is clean. Kernel rootkits can
+hide evidence from user-space tools; rootkit rules therefore report indicators
+for manual verification rather than definitive infection claims.
 
 The build automatically detects SQLite's header and library together. When
 they are unavailable, every other tool still builds and `sql --backend`
@@ -115,7 +145,13 @@ the fallback build explicitly.
 - Added syscall translation and recursive numeric-permission directory listing.
 - Added dependency-tree syscall tracing, unified system monitoring, guarded
   session management, and Sysinternals-style process inspection.
+- Added cross-platform hardware, clock, numeric-conversion, hard-link,
+  autostart, and WHOIS utilities.
+- Added `antivermis` with streaming SHA-256 signatures and bounded,
+  explainable threat indicators.
 - Added repeatable functional, oversized-input, and injection-resistance tests.
+
+See [CHANGELOG.md](CHANGELOG.md) for the dated August 9–16 development history.
 
 ## Safety and resource limits
 
@@ -131,6 +167,8 @@ Security limits:
 - Runtime process scans and trace tracking have hard entry limits.
 - Monitoring logs refuse symbolic-link files and are created with user-only permissions.
 - Session termination is dry-run by default and cannot target root, PID 1, or the caller.
+- `antivermis` never follows symlinks or reads special files, revalidates opened
+  objects, and caps per-file, total-byte, recursion, signature, and finding work.
 - The sanitizer target checks address, leak, and undefined-behavior errors where
   supported by the host compiler.
 
