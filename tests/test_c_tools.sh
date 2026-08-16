@@ -104,6 +104,37 @@ if "$root/bin/whoisx" 'bad query' >/dev/null 2>&1; then
     exit 1
 fi
 
+mkdir "$tmp/antivermis"
+printf clean > "$tmp/antivermis/clean.txt"
+"$root/bin/antivermis" "$tmp/antivermis/clean.txt" | grep -q 'findings=0'
+printf abc > "$tmp/antivermis/test-vector"
+printf 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad safe-test-signature\n' > "$tmp/antivermis/signatures.db"
+if "$root/bin/antivermis" --db "$tmp/antivermis/signatures.db" "$tmp/antivermis/test-vector" > "$tmp/antivermis/signature.out"; then
+    echo "antivermis missed a test signature" >&2
+    exit 1
+fi
+grep -q 'AV-SIG-001' "$tmp/antivermis/signature.out"
+printf '#!/bin/sh\n# stratum+tcp://test.invalid xmrig --donate-level 1 nohup \n' > "$tmp/antivermis/miner-indicator"
+chmod 700 "$tmp/antivermis/miner-indicator"
+if "$root/bin/antivermis" "$tmp/antivermis/miner-indicator" > "$tmp/antivermis/miner.out"; then
+    echo "antivermis missed compound miner indicators" >&2
+    exit 1
+fi
+grep -q 'AV-MINER-001' "$tmp/antivermis/miner.out"
+ln -s "$tmp/antivermis/test-vector" "$tmp/antivermis/vector-link"
+"$root/bin/antivermis" --db "$tmp/antivermis/signatures.db" "$tmp/antivermis/vector-link" | grep -q 'findings=0'
+mkfifo "$tmp/antivermis/scan.fifo"
+"$root/bin/antivermis" "$tmp/antivermis/scan.fifo" | grep -q 'findings=0'
+printf 'not-a-hash broken\n' > "$tmp/antivermis/bad.db"
+if "$root/bin/antivermis" --db "$tmp/antivermis/bad.db" "$tmp/antivermis/clean.txt" >/dev/null 2>&1; then
+    echo "antivermis accepted a malformed database" >&2
+    exit 1
+fi
+if "$root/bin/antivermis" --max-files 1 "$tmp/antivermis" >/dev/null 2>&1; then
+    echo "antivermis did not report an incomplete limited scan" >&2
+    exit 1
+fi
+
 if test "$(uname -s)" = Linux; then
     # traceflow launches its own harmless child; it never attaches to an existing PID.
     "$root/bin/traceflow" /bin/true > "$tmp/traceflow.txt"
