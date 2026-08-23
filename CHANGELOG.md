@@ -13,6 +13,7 @@ timezone.
   `linkscan`, `autostartx`, `whoisx`, and `antivermis`.
 - Shared bounded regular-file helpers in `pycommon.py` and `make python-check`
   for syntax and regression testing in CI.
+- Node 24-compatible GitHub Actions majors for CI and Pages deployment.
 
 ### Security
 
