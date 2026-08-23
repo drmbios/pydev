@@ -1,10 +1,11 @@
-# pydev native tools
+# pydev C and Python tools
 
-Small Linux-style command-line tools converted from the original Python sketches.
-Their implementations are standard C11; `sql` links to the system SQLite C library.
+Small Linux-style command-line tools implemented in both native C11 and Python.
+The C editions remain the primary compact binaries; every user-facing C command
+also has a readable Python counterpart with the same purpose and safety model.
 
-The repository keeps the repaired Python editions as readable reference
-implementations and provides hardened native C versions for everyday terminal use.
+Neither edition wraps or replaces the other. This makes the repository useful
+for everyday terminal work, portability, comparison, and learning.
 
 ## Requirements
 
@@ -21,6 +22,18 @@ Build and test:
 make
 make check
 make sanitize
+make python-check
+```
+
+Run a C tool from `bin/NAME` and its Python counterpart as `python3 NAME.py`.
+For example:
+
+```sh
+bin/lsx -S .
+python3 lsx.py -S .
+
+bin/antivermis --db signatures.hsb ~/Downloads
+python3 antivermis.py --db signatures.hsb ~/Downloads
 ```
 
 Executables are written to `bin/`:
@@ -77,6 +90,11 @@ before sending SIGTERM. `procexp` provides a compact process inventory and
 detailed PID view while intentionally omitting environment variables, which
 often contain API keys and other secrets.
 
+The Python `traceflow.py` edition uses the host's `strace` command on Linux;
+the C edition uses its native tracing implementation. Linux `/proc` is required
+by both editions of `syswatch`, `sessionx`, and `procexp`. Other Python tools use
+only the standard library. Python 3.9 or newer is supported.
+
 ## Unix utility-suite mapping
 
 The project provides Unix-native equivalents inspired by the troubleshooting
@@ -112,13 +130,40 @@ Linux loader-preload configuration.
 bin/antivermis ~/Downloads /tmp
 bin/antivermis --system
 bin/antivermis --db signatures.txt ~/Downloads
+bin/antivermis --check-update https://trusted.example/antivermis.manifest signatures.txt
+bin/antivermis --update-db https://trusted.example/antivermis.manifest signatures.txt
 ```
 
 Signature database lines contain a 64-character SHA-256 digest, whitespace,
-and a short label. Scans default to 100,000 files, 32 MiB per file, 1 GiB total,
+and a short label. Antivermis also accepts ClamAV-compatible SHA-256 hash lines
+in `HashString:FileSize:MalwareName` format, including `*` for unknown size.
+The harmless standard EICAR anti-malware test file is recognized without an
+external database. Scans default to 100,000 files, 32 MiB per file, 1 GiB total,
 64 directory levels, and 10,000 findings. `--max-files N` and
 `--max-bytes MiB` can lower or raise selected limits within hard ceilings.
 Symlinks, FIFOs, devices, and sockets are never followed or read.
+
+Database updates use a small, explicit manifest rather than downloading malware
+samples. Antivermis accepts only HTTPS URLs (`file://` is also available for
+offline testing), limits manifests to 64 KiB and databases to 16 MiB, verifies
+the database SHA-256, parses it before installation, and atomically replaces a
+regular destination with a user-only (`0600`) file. There is no project-operated
+signature feed yet: “latest” means the version published by the manifest URL you
+choose and trust. A manifest has this format:
+
+```text
+ANTIVERMIS-MANIFEST 1
+version 2026.08.19.1
+database https://trusted.example/antivermis-signatures.hsb
+sha256 64-lowercase-or-uppercase-hexadecimal-characters
+```
+
+The manifest itself is not cryptographically signed, so TLS and the manifest
+publisher are part of the trust boundary. A compromised publisher could replace
+both the database and its checksum. Full ClamAV feeds are not accepted directly;
+the downloaded text must fit Antivermis's bounded SHA-256 formats and 4,096-record
+limit. Builds without libcurl retain all scanning features and report the updater
+as unavailable through `--update-capability`.
 
 Exit status `0` means a complete scan with no findings, `1` means findings were
 reported, and `2` means invalid configuration or incomplete coverage caused by
@@ -127,10 +172,33 @@ read credential stores, or promise that a machine is clean. Kernel rootkits can
 hide evidence from user-space tools; rootkit rules therefore report indicators
 for manual verification rather than definitive infection claims.
 
+Antivermis scans raw regular files only. It does not unpack ZIP, TAR, disk-image,
+or application-container formats, so compressed EICAR variants and malware
+inside archives require a separately sandboxed archive scanner. This avoids
+archive recursion and decompression-bomb risks in the small privileged-adjacent
+codebase.
+
+### Validation references
+
+- [EICAR anti-malware test file](https://www.eicar.org/download-anti-malware-testfile/):
+  the standard harmless file is recognized as `AV-TEST-001` by its SHA-256
+  digest; the test string is assembled only inside the temporary test directory.
+- [ClamAV hash-signature documentation](https://docs.clamav.net/manual/Signatures/HashSignatures.html):
+  Antivermis accepts SHA-256 `HashString:FileSize:MalwareName` records and
+  validates exact sizes or the documented `*` unknown-size marker.
+- [MITRE ATT&CK T1496 Resource Hijacking](https://attack.mitre.org/techniques/T1496/):
+  miner findings require combined evidence such as a Stratum endpoint plus
+  miner/execution indicators, rather than classifying a filename or port alone.
+- [YARA rules](https://virustotal.github.io/yara/): Antivermis does not yet
+  parse YARA rules. Use a dedicated YARA or ClamAV deployment when logical
+  signatures, archive decomposition, normalization, or maintained threat feeds
+  are required.
+
 The build automatically detects SQLite's header and library together. When
 they are unavailable, every other tool still builds and `sql --backend`
 explains that SQLite support is disabled. Run `make check-no-sqlite` to verify
-the fallback build explicitly.
+the fallback build explicitly. The updater similarly auto-detects libcurl; run
+`make check-no-curl` to verify the signature-scanner fallback without it.
 
 ## What changed
 
@@ -148,10 +216,10 @@ the fallback build explicitly.
 - Added cross-platform hardware, clock, numeric-conversion, hard-link,
   autostart, and WHOIS utilities.
 - Added `antivermis` with streaming SHA-256 signatures and bounded,
-  explainable threat indicators.
+  explainable threat indicators plus opt-in, hash-verified database updates.
 - Added repeatable functional, oversized-input, and injection-resistance tests.
 
-See [CHANGELOG.md](CHANGELOG.md) for the dated August 9–16 development history.
+See [CHANGELOG.md](CHANGELOG.md) for the dated August 9–23 development history.
 
 ## Safety and resource limits
 

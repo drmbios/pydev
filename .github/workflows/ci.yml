@@ -23,7 +23,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
       - name: Strict release build and tests
         run: make clean && make -j2 && make check
+      - name: Python counterparts and tests
+        run: make python-check
       - name: Build without SQLite
         run: make check-no-sqlite
+      - name: Build without libcurl
+        run: make check-no-curl
       - name: Address and undefined-behavior sanitizers
         run: make sanitize

@@ -1,11 +1,25 @@
 """Write text to a file."""
 
 import argparse
+import os
 from pathlib import Path
+
+MAX_TEXT_SIZE = 1024 * 1024
 
 
 def write_text(path: Path, text: str) -> None:
-    path.write_text(text, encoding="utf-8")
+    data = text.encode("utf-8")
+    if len(data) > MAX_TEXT_SIZE:
+        raise ValueError("text exceeds the 1 MiB limit")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(path, flags, 0o600)
+    try:
+        written = 0
+        while written < len(data):
+            amount = os.write(descriptor, data[written:])
+            if amount <= 0: raise OSError("short write")
+            written += amount
+    finally: os.close(descriptor)
 
 
 def main() -> None:
