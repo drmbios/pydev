@@ -9,6 +9,7 @@ TOOLS := cntr codebreaker parser_html qpipper rdr2dot0 readjson sql contacts ttt
 	coreinfo clockres numconv linkscan autostartx whoisx antivermis
 SQLITE_PROBE_CFLAGS := $(filter-out -g,$(CFLAGS))
 SQLITE_AVAILABLE ?= $(shell $(CC) $(CPPFLAGS) $(SQLITE_PROBE_CFLAGS) c/sqlite_probe.c $(LDFLAGS) -lsqlite3 -o /dev/null >/dev/null 2>&1 && echo 1 || echo 0)
+CURL_AVAILABLE ?= $(shell $(CC) $(CPPFLAGS) $(SQLITE_PROBE_CFLAGS) c/curl_probe.c $(LDFLAGS) -lcurl -o /dev/null >/dev/null 2>&1 && echo 1 || echo 0)
 
 ifeq ($(SQLITE_AVAILABLE),1)
 SQLITE_CPPFLAGS := -DPYDEV_HAVE_SQLITE3=1
@@ -18,7 +19,15 @@ SQLITE_CPPFLAGS := -DPYDEV_HAVE_SQLITE3=0
 SQLITE_LIBS :=
 endif
 
-.PHONY: all clean check check-no-sqlite sanitize
+ifeq ($(CURL_AVAILABLE),1)
+CURL_CPPFLAGS := -DPYDEV_HAVE_CURL=1
+CURL_LIBS := -lcurl
+else
+CURL_CPPFLAGS := -DPYDEV_HAVE_CURL=0
+CURL_LIBS :=
+endif
+
+.PHONY: all clean check python-check check-no-sqlite check-no-curl sanitize
 all: $(TOOLS:%=$(BIN_DIR)/%)
 
 $(BIN_DIR):
@@ -46,8 +55,8 @@ $(BIN_DIR)/randpass: c/randpass.c $(COMMON) c/common.h | $(BIN_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(COMMON) $(LDFLAGS) -o $@
 $(BIN_DIR)/syscallx: c/syscallx.c $(COMMON) c/common.h | $(BIN_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(COMMON) $(LDFLAGS) -o $@
-$(BIN_DIR)/antivermis: c/antivermis.c c/av_sha256.c $(COMMON) c/av_sha256.h c/common.h | $(BIN_DIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) c/antivermis.c c/av_sha256.c $(COMMON) $(LDFLAGS) -o $@
+$(BIN_DIR)/antivermis: c/antivermis.c c/av_sha256.c c/av_update.c $(COMMON) c/av_sha256.h c/av_update.h c/common.h | $(BIN_DIR)
+	$(CC) $(CPPFLAGS) $(CURL_CPPFLAGS) $(CFLAGS) c/antivermis.c c/av_sha256.c c/av_update.c $(COMMON) $(LDFLAGS) $(CURL_LIBS) -o $@
 $(BIN_DIR)/sql: c/sql.c | $(BIN_DIR)
 	$(CC) $(CPPFLAGS) $(SQLITE_CPPFLAGS) $(CFLAGS) $< $(LDFLAGS) $(SQLITE_LIBS) -o $@
 $(BIN_DIR)/%: c/%.c | $(BIN_DIR)
@@ -56,10 +65,20 @@ $(BIN_DIR)/%: c/%.c | $(BIN_DIR)
 check: all
 	sh tests/test_c_tools.sh
 
+python-check:
+	python3 -m compileall -q .
+	python3 -m unittest -v test_apps.py
+
 check-no-sqlite: clean
 	$(MAKE) SQLITE_AVAILABLE=0 $(BIN_DIR)/sql
 	$(BIN_DIR)/sql --backend | grep -q '^unavailable'
 	! $(BIN_DIR)/sql test.db list >/dev/null 2>&1
+
+check-no-curl: clean
+	$(MAKE) CURL_AVAILABLE=0 $(BIN_DIR)/antivermis
+	! $(BIN_DIR)/antivermis --update-capability | grep -q '^https'
+	printf clean > $(BIN_DIR)/antivermis-clean-test
+	$(BIN_DIR)/antivermis $(BIN_DIR)/antivermis-clean-test | grep -q 'findings=0'
 
 sanitize: clean
 	$(MAKE) CFLAGS="-std=c11 -O1 -g -Wall -Wextra -Wpedantic -fsanitize=address,undefined -fno-omit-frame-pointer" LDFLAGS="-fsanitize=address,undefined" check

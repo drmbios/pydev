@@ -5,6 +5,7 @@ import string
 from collections import Counter
 from pathlib import Path
 from typing import Dict
+from pycommon import read_bytes
 
 
 def count_letters(text: str) -> Dict[str, int]:
@@ -17,7 +18,7 @@ def main() -> None:
     parser.add_argument("file", type=Path, help="text file to inspect")
     args = parser.parse_args()
 
-    text = args.file.read_text(encoding="utf-8")
+    text = read_bytes(args.file).decode("utf-8")
     for letter, count in count_letters(text).items():
         print(letter, count)
 

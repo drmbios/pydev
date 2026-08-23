@@ -3,12 +3,47 @@
 All notable project changes are recorded here. Dates use the Asia/Baku project
 timezone.
 
+## 2026-08-23
+
+### Added
+
+- Independent Python 3.9+ counterparts for all previously C-only tools:
+  `checksum`, `hexview`, `stringsx`, `randpass`, `syscallx`, `lsx`, `traceflow`,
+  `syswatch`, `sessionx`, `procexp`, `coreinfo`, `clockres`, `numconv`,
+  `linkscan`, `autostartx`, `whoisx`, and `antivermis`.
+- Shared bounded regular-file helpers in `pycommon.py` and `make python-check`
+  for syntax and regression testing in CI.
+
+### Security
+
+- Python counterparts preserve bounded reads, symlink avoidance, cryptographic
+  randomness, read-only defaults, guarded session termination, hidden process
+  environments, and hash-verified atomic Antivermis database updates.
+
+## 2026-08-19
+
+### Added
+
+- Opt-in `antivermis --check-update` and `--update-db` commands for bounded
+  HTTPS signature manifests, with an offline `file://` mode for testing.
+
+### Security
+
+- Updated databases are size-bounded, SHA-256 verified, parser-validated,
+  written with user-only permissions, and atomically installed without
+  following a destination symlink. Malware bodies and samples are never
+  downloaded.
+
 ## 2026-08-16
 
 ### Added
 
 - `antivermis`, a read-only Linux/macOS threat-hunting scanner written in C.
 - Streaming SHA-256 and optional local signature-database matching.
+- Built-in harmless EICAR test-file recognition and ClamAV-compatible SHA-256
+  `HashString:FileSize:MalwareName` database records.
+- Added documented validation references for EICAR, ClamAV, MITRE ATT&CK
+  Resource Hijacking, and the current YARA/archive-scanning boundary.
 - Explainable rules for compound miner/Stratum indicators, download-and-execute
   droppers, risky temporary executables, set-ID and world-writable executables,
   persistence entries, and Linux loader-preload/rootkit indicators.

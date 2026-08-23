@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "av_sha256.h"
+#include "av_update.h"
 #include "common.h"
 
 #include <ctype.h>
@@ -36,7 +37,12 @@
 #define AV_TOTAL_BYTES (1024ULL * 1024ULL * 1024ULL)
 #define AV_MAX_FINDINGS 10000ULL
 
-struct signature { char hash[65]; char label[AV_LABEL_SIZE]; };
+struct signature {
+    char hash[65];
+    char label[AV_LABEL_SIZE];
+    unsigned long long file_size;
+    int any_size;
+};
 struct scanner {
     struct signature *signatures;
     size_t signature_count;
@@ -126,20 +132,43 @@ static int load_database(struct scanner *scanner, const char *path) {
         fputs("antivermis: signature database must be a stable regular non-symlink file up to 16 MiB\n", stderr);
         return -1;
     }
+    if (strlen(data) != length) {
+        fputs("antivermis: signature database contains binary NUL data\n", stderr);
+        free(data); return -1;
+    }
     (void)length;
     scanner->signatures = calloc(AV_MAX_SIGNATURES, sizeof *scanner->signatures);
     if (!scanner->signatures) { free(data); return -1; }
     for (line = strtok_r(data, "\n", &save); line; line = strtok_r(NULL, "\n", &save)) {
         char *label, *end;
         size_t index, label_length;
+        unsigned long long signature_size = 0;
+        int any_size = 1;
         line[strcspn(line, "\r")] = '\0';
         while (*line == ' ' || *line == '\t') ++line;
         if (*line == '\0' || *line == '#') continue;
-        end = line + strcspn(line, " \t");
-        if (*end == '\0') { fprintf(stderr, "antivermis: malformed signature line\n"); free(data); return -1; }
-        *end++ = '\0';
-        while (*end == ' ' || *end == '\t') ++end;
-        label = end;
+        end = strchr(line, ':');
+        if (end && (size_t)(end - line) == 64U) {
+            char *size_text, *second_colon, *size_end;
+            *end++ = '\0'; size_text = end;
+            second_colon = strchr(size_text, ':');
+            if (!second_colon) { fputs("antivermis: malformed ClamAV hash signature\n", stderr); free(data); return -1; }
+            *second_colon++ = '\0'; label = second_colon;
+            if (strcmp(size_text, "*") != 0) {
+                errno = 0;
+                signature_size = strtoull(size_text, &size_end, 10);
+                if (errno || size_end == size_text || *size_end != '\0') {
+                    fputs("antivermis: invalid signature file size\n", stderr); free(data); return -1;
+                }
+                any_size = 0;
+            }
+        } else {
+            end = line + strcspn(line, " \t");
+            if (*end == '\0') { fprintf(stderr, "antivermis: malformed signature line\n"); free(data); return -1; }
+            *end++ = '\0';
+            while (*end == ' ' || *end == '\t') ++end;
+            label = end;
+        }
         label_length = strlen(label);
         if (!valid_hash(line) || label_length == 0U || label_length >= AV_LABEL_SIZE ||
             scanner->signature_count >= AV_MAX_SIGNATURES) {
@@ -149,6 +178,8 @@ static int load_database(struct scanner *scanner, const char *path) {
         for (index = 0; index < 64U; ++index) line[index] = (char)tolower((unsigned char)line[index]);
         memcpy(scanner->signatures[scanner->signature_count].hash, line, 65U);
         memcpy(scanner->signatures[scanner->signature_count].label, label, label_length + 1U);
+        scanner->signatures[scanner->signature_count].file_size = signature_size;
+        scanner->signatures[scanner->signature_count].any_size = any_size;
         ++scanner->signature_count;
     }
     free(data);
@@ -165,13 +196,14 @@ static int load_database(struct scanner *scanner, const char *path) {
     return 0;
 }
 
-static const char *signature_label(const struct scanner *scanner, const char hash[65]) {
+static const char *signature_label(const struct scanner *scanner, const char hash[65],
+                                   unsigned long long file_size) {
     struct signature key;
     const struct signature *match;
     memset(&key, 0, sizeof key); memcpy(key.hash, hash, 65U);
     match = bsearch(&key, scanner->signatures, scanner->signature_count,
                     sizeof *scanner->signatures, compare_signatures);
-    return match ? match->label : NULL;
+    return match && (match->any_size || match->file_size == file_size) ? match->label : NULL;
 }
 
 static int contains_path(const char *path, const char *part) { return strstr(path, part) != NULL; }
@@ -261,7 +293,9 @@ static int scan_file(struct scanner *scanner, const char *path, const struct sta
     }
     scanner->bytes += read_total;
     av_sha256_final(&sha, digest); av_sha256_hex(digest, hash);
-    label = scanner->signatures ? signature_label(scanner, hash) : NULL;
+    if (strcmp(hash, "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f") == 0)
+        finding(scanner, "HIGH", "AV-TEST-001", path, "EICAR anti-malware test file (harmless test pattern)");
+    label = scanner->signatures ? signature_label(scanner, hash, read_total) : NULL;
     if (label) finding(scanner, "HIGH", "AV-SIG-001", path, label);
     if (executable && (expected->st_mode & S_IWOTH))
         finding(scanner, "HIGH", "AV-FILE-001", path, "world-writable executable");
@@ -334,12 +368,29 @@ static void scan_system(struct scanner *scanner) {
         if (access(paths[index], F_OK) == 0) (void)scan_path(scanner, paths[index], 0);
 }
 
+static int validate_database_path(const char *path) {
+    struct scanner validator;
+    int result;
+    memset(&validator, 0, sizeof validator);
+    result = load_database(&validator, path);
+    free(validator.signatures);
+    return result;
+}
+
 int main(int argc, char **argv) {
     struct scanner scanner;
     const char *database = NULL;
     int system_mode = 0, first_path = 1, index;
     memset(&scanner, 0, sizeof scanner);
     scanner.max_files = AV_DEFAULT_FILES; scanner.max_file_bytes = AV_DEFAULT_FILE_BYTES;
+    if (argc == 2 && strcmp(argv[1], "--update-capability") == 0) {
+        puts(av_update_available() ? "https+file manifest updater available" : "updater unavailable (libcurl not found at build time)");
+        return av_update_available() ? 0 : 1;
+    }
+    if (argc == 4 && strcmp(argv[1], "--check-update") == 0)
+        return av_check_database_update(argv[2], argv[3]) == 0 ? 0 : 2;
+    if (argc == 4 && strcmp(argv[1], "--update-db") == 0)
+        return av_update_database(argv[2], argv[3], validate_database_path) == 0 ? 0 : 2;
     while (first_path < argc) {
         if (strcmp(argv[first_path], "--db") == 0 && first_path + 1 < argc) database = argv[++first_path];
         else if (strcmp(argv[first_path], "--max-files") == 0 && first_path + 1 < argc) {
@@ -353,7 +404,10 @@ int main(int argc, char **argv) {
         ++first_path;
     }
     if (!system_mode && first_path >= argc) {
-        fprintf(stderr, "usage: %s [--db FILE] [--max-files N] [--max-bytes MiB] [--system] PATH...\n", argv[0]);
+        fprintf(stderr, "usage: %s [--db FILE] [--max-files N] [--max-bytes MiB] [--system] PATH...\n"
+                        "       %s --check-update MANIFEST_URL DATABASE\n"
+                        "       %s --update-db MANIFEST_URL DATABASE\n",
+                argv[0], argv[0], argv[0]);
         return 2;
     }
     if (database && load_database(&scanner, database) != 0) { free(scanner.signatures); return 2; }

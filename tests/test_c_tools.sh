@@ -114,6 +114,44 @@ if "$root/bin/antivermis" --db "$tmp/antivermis/signatures.db" "$tmp/antivermis/
     exit 1
 fi
 grep -q 'AV-SIG-001' "$tmp/antivermis/signature.out"
+printf 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad:3:ClamAV-HSB-test\n' > "$tmp/antivermis/clamav.hsb"
+if "$root/bin/antivermis" --db "$tmp/antivermis/clamav.hsb" "$tmp/antivermis/test-vector" > "$tmp/antivermis/clamav.out"; then
+    echo "antivermis missed a ClamAV-style SHA-256 signature" >&2
+    exit 1
+fi
+grep -q 'ClamAV-HSB-test' "$tmp/antivermis/clamav.out"
+printf 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad:4:wrong-size\n' > "$tmp/antivermis/wrong-size.hsb"
+"$root/bin/antivermis" --db "$tmp/antivermis/wrong-size.hsb" "$tmp/antivermis/test-vector" | grep -q 'findings=0'
+printf '%s%s' 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-' 'STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > "$tmp/antivermis/eicar.com"
+if "$root/bin/antivermis" "$tmp/antivermis/eicar.com" > "$tmp/antivermis/eicar.out"; then
+    echo "antivermis missed the harmless EICAR test file" >&2
+    exit 1
+fi
+grep -q 'AV-TEST-001' "$tmp/antivermis/eicar.out"
+if "$root/bin/antivermis" --update-capability >/dev/null 2>&1; then
+    printf 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad:3:Updater-test\n' > "$tmp/antivermis/update-source.db"
+    printf 'old database\n' > "$tmp/antivermis/update.db"
+    printf 'ANTIVERMIS-MANIFEST 1\nversion 2026.08.19.1\ndatabase file://%s\nsha256 ca3e35a53ca2c80ee724d37b8789e12974080b2f80e1ef5b02a613f6ce6c8e7d\n' \
+        "$tmp/antivermis/update-source.db" > "$tmp/antivermis/update.manifest"
+    "$root/bin/antivermis" --check-update "file://$tmp/antivermis/update.manifest" "$tmp/antivermis/update.db" | grep -q 'update available'
+    "$root/bin/antivermis" --update-db "file://$tmp/antivermis/update.manifest" "$tmp/antivermis/update.db" | grep -q 'updated to version'
+    cmp "$tmp/antivermis/update-source.db" "$tmp/antivermis/update.db"
+    "$root/bin/antivermis" --check-update "file://$tmp/antivermis/update.manifest" "$tmp/antivermis/update.db" | grep -q 'is current'
+    printf 'ANTIVERMIS-MANIFEST 1\nversion bad\ndatabase file://%s\nsha256 0000000000000000000000000000000000000000000000000000000000000000\n' \
+        "$tmp/antivermis/update-source.db" > "$tmp/antivermis/bad-update.manifest"
+    if "$root/bin/antivermis" --update-db "file://$tmp/antivermis/bad-update.manifest" "$tmp/antivermis/update.db" >/dev/null 2>&1; then
+        echo "antivermis accepted a database with the wrong update hash" >&2
+        exit 1
+    fi
+    cmp "$tmp/antivermis/update-source.db" "$tmp/antivermis/update.db"
+    printf protected > "$tmp/antivermis/protected.db"
+    ln -s "$tmp/antivermis/protected.db" "$tmp/antivermis/update-link.db"
+    if "$root/bin/antivermis" --update-db "file://$tmp/antivermis/update.manifest" "$tmp/antivermis/update-link.db" >/dev/null 2>&1; then
+        echo "antivermis replaced a symbolic-link database destination" >&2
+        exit 1
+    fi
+    test "$(cat "$tmp/antivermis/protected.db")" = protected
+fi
 printf '#!/bin/sh\n# stratum+tcp://test.invalid xmrig --donate-level 1 nohup \n' > "$tmp/antivermis/miner-indicator"
 chmod 700 "$tmp/antivermis/miner-indicator"
 if "$root/bin/antivermis" "$tmp/antivermis/miner-indicator" > "$tmp/antivermis/miner.out"; then
@@ -136,10 +174,12 @@ if "$root/bin/antivermis" --max-files 1 "$tmp/antivermis" >/dev/null 2>&1; then
 fi
 
 if test "$(uname -s)" = Linux; then
-    # traceflow launches its own harmless child; it never attaches to an existing PID.
-    "$root/bin/traceflow" /bin/true > "$tmp/traceflow.txt"
-    grep -q 'exec' "$tmp/traceflow.txt"
-    grep -q 'exited=0' "$tmp/traceflow.txt"
+    if test "$(uname -m)" = x86_64; then
+        # traceflow launches its own harmless child; it never attaches to an existing PID.
+        "$root/bin/traceflow" /bin/true > "$tmp/traceflow.txt"
+        grep -q 'exec' "$tmp/traceflow.txt"
+        grep -q 'exited=0' "$tmp/traceflow.txt"
+    fi
 
     "$root/bin/syswatch" --interval 1 --count 1 --log "$tmp/metrics" > "$tmp/syswatch.txt"
     grep -q 'CPU' "$tmp/syswatch.txt"

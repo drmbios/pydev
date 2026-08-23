@@ -4,6 +4,7 @@ import argparse
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import List, Optional, Tuple
+from pycommon import read_bytes
 
 
 class LinkParser(HTMLParser):
@@ -17,6 +18,8 @@ class LinkParser(HTMLParser):
         if tag.casefold() == "a":
             href = dict(attrs).get("href")
             if href is not None:
+                if len(self.links) >= 100_000:
+                    raise ValueError("link limit exceeded")
                 self.links.append(href)
 
 
@@ -30,7 +33,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("file", type=Path, help="HTML file to parse")
     args = parser.parse_args()
-    print(extract_links(args.file.read_text(encoding="utf-8")))
+    print(extract_links(read_bytes(args.file).decode("utf-8")))
 
 
 if __name__ == "__main__":

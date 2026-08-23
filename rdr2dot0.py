@@ -4,10 +4,11 @@ import argparse
 import json
 from pathlib import Path
 from typing import Any
+from pycommon import read_bytes
 
 
 def read_json(path: Path) -> Any:
-    text = path.read_text(encoding="utf-8")
+    text = read_bytes(path).decode("utf-8")
     try:
         return json.loads(text)
     except json.JSONDecodeError:
