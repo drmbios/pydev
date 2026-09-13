@@ -14,6 +14,7 @@ import ssl
 import stat
 import tempfile
 import urllib.request
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlparse
@@ -190,6 +191,7 @@ def system_paths() -> list[Path]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(); parser.add_argument("paths", nargs="*"); parser.add_argument("--db", type=Path)
     parser.add_argument("--system", action="store_true"); parser.add_argument("--max-files", type=int, default=100_000); parser.add_argument("--max-bytes", type=int, default=32)
+    parser.add_argument("--json", action="store_true")
     parser.add_argument("--check-update", nargs=2, metavar=("MANIFEST_URL", "DATABASE")); parser.add_argument("--update-db", nargs=2, metavar=("MANIFEST_URL", "DATABASE"))
     args = parser.parse_args(argv)
     try:
@@ -197,6 +199,16 @@ def main(argv: list[str] | None = None) -> int:
         if action: print(update_database(action[0], Path(action[1]), bool(args.check_update))); return 0
         paths = [Path(value) for value in args.paths] + (system_paths() if args.system else [])
         if not paths or not 1 <= args.max_files <= 1_000_000 or not 1 <= args.max_bytes <= 64: raise ValueError("invalid or missing scan paths/limits")
+        if args.json:
+            from pydev_ai.collectors import scan_files
+            from pydev_ai.policy import RootPolicy
+            roots = []
+            for path_value in paths + ([args.db] if args.db else []):
+                resolved = path_value.expanduser().resolve(strict=True)
+                roots.append(str(resolved if resolved.is_dir() else resolved.parent))
+            response = scan_files(RootPolicy(roots), [str(path) for path in paths], str(args.db) if args.db else None,
+                                  args.max_files, args.max_bytes * 1024 * 1024)
+            print(json.dumps(response, sort_keys=True)); return 0 if response["status"] != "failure" else 2
         result = scan(paths, load_database(args.db), args.max_files, args.max_bytes * 1024 * 1024)
         for rule, path, evidence in result.findings: print(f"{rule} {path}: {evidence}")
         print(f"files={result.files} bytes={result.bytes} findings={len(result.findings)} errors={result.errors}")

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drmbios.github.io/pydev/schema/response-1.0.json",
+  "type": "object",
+  "required": [
+    "schema_version", "tool", "implementation_version", "request_id",
+    "observed_at_utc", "completed_at_utc", "duration_ms", "platform",
+    "capabilities", "status", "data", "evidence", "warnings", "errors",
+    "coverage"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "tool": {"type": "string", "minLength": 1},
+    "implementation_version": {"type": "string"},
+    "request_id": {"type": "string", "minLength": 1},
+    "observed_at_utc": {"type": "string"},
+    "completed_at_utc": {"type": "string"},
+    "duration_ms": {"type": "number", "minimum": 0},
+    "platform": {"type": "object"},
+    "capabilities": {"type": "object"},
+    "status": {"enum": ["failure", "partial", "success", "unsupported"]},
+    "data": {"type": "object"},
+    "evidence": {"type": "array"},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "errors": {"type": "array"},
+    "coverage": {"type": "object"}
+  },
+  "additionalProperties": true
+}

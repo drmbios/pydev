@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pydev-evidence-tools"
+version = "1.0.0"
+description = "Structured adapters and MCP tools for the pydev system utilities"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=2,<3; python_version >= '3.10'"]
+
+[project.scripts]
+pydev-ai = "pydev_ai.cli:main"
+pydev-mcp = "pydev_ai.mcp_server:main"
+
+[tool.setuptools]
+py-modules = ["antivermis", "autostartx", "coreinfo", "linkscan", "lsx", "pycommon", "stringsx"]
+
+[tool.setuptools.packages.find]
+include = ["pydev_ai*"]

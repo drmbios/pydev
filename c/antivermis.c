@@ -14,6 +14,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #ifndef O_NOFOLLOW
@@ -55,6 +56,7 @@ struct scanner {
     unsigned long long max_files;
     unsigned long long max_file_bytes;
     int limit_hit;
+    int json_output;
 };
 
 enum content_flags {
@@ -70,11 +72,38 @@ static void print_safe(const char *text) {
     }
 }
 
+static void print_json_string(const char *text) {
+    putchar('"');
+    while (*text) {
+        unsigned char byte = (unsigned char)*text++;
+        if (byte == '"' || byte == '\\') { putchar('\\'); putchar((int)byte); }
+        else if (byte >= 32U && byte <= 126U) putchar((int)byte);
+        else printf("\\u%04x", (unsigned)byte);
+    }
+    putchar('"');
+}
+
+static void utc_timestamp(char output[32]) {
+    time_t now = time(NULL);
+    struct tm value;
+    if (gmtime_r(&now, &value) == NULL || strftime(output, 32U, "%Y-%m-%dT%H:%M:%SZ", &value) == 0U)
+        snprintf(output, 32U, "1970-01-01T00:00:00Z");
+}
+
 static void finding(struct scanner *scanner, const char *severity, const char *rule,
                     const char *path, const char *evidence) {
     if (scanner->findings >= AV_MAX_FINDINGS) { scanner->limit_hit = 1; return; }
-    printf("[%s] %s path=", severity, rule); print_safe(path);
-    fputs(" evidence=", stdout); print_safe(evidence); putchar('\n');
+    if (scanner->json_output) {
+        if (scanner->findings) putchar(',');
+        fputs("{\"rule_id\":", stdout); print_json_string(rule);
+        fputs(",\"severity\":", stdout); print_json_string(severity);
+        fputs(",\"path\":", stdout); print_json_string(path);
+        fputs(",\"evidence\":", stdout); print_json_string(evidence);
+        printf(",\"evidence_id\":\"E%04llu\"}", scanner->findings + 1ULL);
+    } else {
+        printf("[%s] %s path=", severity, rule); print_safe(path);
+        fputs(" evidence=", stdout); print_safe(evidence); putchar('\n');
+    }
     ++scanner->findings;
 }
 
@@ -294,7 +323,7 @@ static int scan_file(struct scanner *scanner, const char *path, const struct sta
     scanner->bytes += read_total;
     av_sha256_final(&sha, digest); av_sha256_hex(digest, hash);
     if (strcmp(hash, "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f") == 0)
-        finding(scanner, "HIGH", "AV-TEST-001", path, "EICAR anti-malware test file (harmless test pattern)");
+        finding(scanner, "INFORMATIONAL", "AV-TEST-001", path, "EICAR anti-malware test file (harmless test pattern)");
     label = scanner->signatures ? signature_label(scanner, hash, read_total) : NULL;
     if (label) finding(scanner, "HIGH", "AV-SIG-001", path, label);
     if (executable && (expected->st_mode & S_IWOTH))
@@ -381,6 +410,8 @@ int main(int argc, char **argv) {
     struct scanner scanner;
     const char *database = NULL;
     int system_mode = 0, first_path = 1, index;
+    char observed[32], completed[32], request_id[64];
+    struct timespec started, ended;
     memset(&scanner, 0, sizeof scanner);
     scanner.max_files = AV_DEFAULT_FILES; scanner.max_file_bytes = AV_DEFAULT_FILE_BYTES;
     if (argc == 2 && strcmp(argv[1], "--update-capability") == 0) {
@@ -393,6 +424,7 @@ int main(int argc, char **argv) {
         return av_update_database(argv[2], argv[3], validate_database_path) == 0 ? 0 : 2;
     while (first_path < argc) {
         if (strcmp(argv[first_path], "--db") == 0 && first_path + 1 < argc) database = argv[++first_path];
+        else if (strcmp(argv[first_path], "--json") == 0) scanner.json_output = 1;
         else if (strcmp(argv[first_path], "--max-files") == 0 && first_path + 1 < argc) {
             long value; if (parse_long(argv[++first_path], 1, (long)AV_HARD_MAX_FILES, &value) != 0) return 2;
             scanner.max_files = (unsigned long long)value;
@@ -404,18 +436,46 @@ int main(int argc, char **argv) {
         ++first_path;
     }
     if (!system_mode && first_path >= argc) {
-        fprintf(stderr, "usage: %s [--db FILE] [--max-files N] [--max-bytes MiB] [--system] PATH...\n"
+        fprintf(stderr, "usage: %s [--json] [--db FILE] [--max-files N] [--max-bytes MiB] [--system] PATH...\n"
                         "       %s --check-update MANIFEST_URL DATABASE\n"
                         "       %s --update-db MANIFEST_URL DATABASE\n",
                 argv[0], argv[0], argv[0]);
         return 2;
     }
     if (database && load_database(&scanner, database) != 0) { free(scanner.signatures); return 2; }
+    utc_timestamp(observed); (void)clock_gettime(CLOCK_MONOTONIC, &started);
+    if (scanner.json_output) {
+        snprintf(request_id, sizeof request_id, "c-%ld-%lld", (long)getpid(), (long long)time(NULL));
+        fputs("{\"schema_version\":\"1.0\",\"tool\":\"scan_files\",\"implementation_version\":\"c-1.0\",\"request_id\":", stdout);
+        print_json_string(request_id); fputs(",\"observed_at_utc\":", stdout); print_json_string(observed);
+        fputs(",\"platform\":{\"system\":\"POSIX\"},\"capabilities\":{\"read_only\":true,\"rule_semantics\":\"native-c\"},\"data\":{\"findings\":[", stdout);
+    }
     if (system_mode) scan_system(&scanner);
     for (index = first_path; index < argc && !scanner.limit_hit; ++index) (void)scan_path(&scanner, argv[index], 0);
-    printf("SUMMARY files=%llu directories=%llu bytes=%llu findings=%llu skipped=%llu errors=%llu limited=%s\n",
-           scanner.files, scanner.directories, scanner.bytes, scanner.findings,
-           scanner.skipped, scanner.errors, scanner.limit_hit ? "yes" : "no");
+    if (scanner.json_output) {
+        double duration;
+        (void)clock_gettime(CLOCK_MONOTONIC, &ended); utc_timestamp(completed);
+        duration = (double)(ended.tv_sec - started.tv_sec) * 1000.0 + (double)(ended.tv_nsec - started.tv_nsec) / 1000000.0;
+        printf("],\"finding_count\":%llu,\"bytes_scanned\":%llu,\"safety_statement\":\"No findings does not prove that a file or host is safe.\"},",
+               scanner.findings, scanner.bytes);
+        fputs("\"completed_at_utc\":", stdout); print_json_string(completed);
+        printf(",\"duration_ms\":%.3f,\"status\":\"%s\",\"evidence\":[",
+               duration, (scanner.errors || scanner.limit_hit) ? "partial" : "success");
+        {
+            unsigned long long evidence_index;
+            for (evidence_index = 0; evidence_index < scanner.findings; ++evidence_index) {
+                if (evidence_index) putchar(',');
+                printf("{\"evidence_id\":\"E%04llu\",\"kind\":\"security_indicator\",\"source\":\"finding record\"}", evidence_index + 1ULL);
+            }
+        }
+        printf("],\"warnings\":[],\"errors\":[],\"coverage\":{\"scanned\":%llu,\"skipped\":%llu,\"failed\":%llu,\"truncated\":%d,\"limit_reasons\":[%s]}}\n",
+               scanner.files,
+               scanner.skipped, scanner.errors, scanner.limit_hit ? 1 : 0, scanner.limit_hit ? "\"scan work limit\"" : "");
+    } else {
+        printf("SUMMARY files=%llu directories=%llu bytes=%llu findings=%llu skipped=%llu errors=%llu limited=%s\n",
+               scanner.files, scanner.directories, scanner.bytes, scanner.findings,
+               scanner.skipped, scanner.errors, scanner.limit_hit ? "yes" : "no");
+    }
     free(scanner.signatures);
     if (scanner.errors || scanner.limit_hit) return 2;
     return scanner.findings ? 1 : 0;

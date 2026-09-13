@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
+#include <time.h>
 #include <unistd.h>
 
 #if defined(__APPLE__)
@@ -57,13 +58,16 @@ static void apple_details(void) {
 }
 #endif
 
-int main(void) {
+int main(int argc, char **argv) {
     struct utsname system_info;
     long processors = -1;
     long page_size = sysconf(_SC_PAGESIZE);
+    int json_output = argc == 2 && strcmp(argv[1], "--json") == 0;
+    char timestamp[32];
+    time_t now;
+    struct tm utc;
+    if (argc > 2 || (argc == 2 && !json_output)) { fprintf(stderr, "usage: %s [--json]\n", argv[0]); return 2; }
     if (uname(&system_info) != 0) { fprintf(stderr, "coreinfo: uname: %s\n", strerror(errno)); return 1; }
-    printf("%-16s %s %s\n%-16s %s\n", "system", system_info.sysname, system_info.release,
-           "architecture", system_info.machine);
 #if defined(__APPLE__)
     {
         int logical = 0;
@@ -73,6 +77,23 @@ int main(void) {
 #elif defined(_SC_NPROCESSORS_ONLN)
     processors = sysconf(_SC_NPROCESSORS_ONLN);
 #endif
+    if (json_output) {
+        now = time(NULL);
+        if (gmtime_r(&now, &utc) == NULL || strftime(timestamp, sizeof timestamp, "%Y-%m-%dT%H:%M:%SZ", &utc) == 0U)
+            snprintf(timestamp, sizeof timestamp, "1970-01-01T00:00:00Z");
+        printf("{\"schema_version\":\"1.0\",\"tool\":\"get_system_info\",\"implementation_version\":\"c-1.0\","
+               "\"request_id\":\"c-%ld-%lld\",\"observed_at_utc\":\"%s\",\"completed_at_utc\":\"%s\",\"duration_ms\":0.0,"
+               "\"platform\":{\"system\":\"%s\",\"release\":\"%s\",\"machine\":\"%s\"},"
+               "\"capabilities\":{\"cross_platform\":true},\"status\":\"success\","
+               "\"data\":{\"system\":\"%s\",\"kernel\":\"%s\",\"architecture\":\"%s\",\"logical_cpus\":%ld,\"page_size_bytes\":%ld,\"evidence_id\":\"E0001\"},"
+               "\"evidence\":[{\"evidence_id\":\"E0001\",\"kind\":\"system_info\",\"source\":\"uname/sysconf\"}],"
+               "\"warnings\":[],\"errors\":[],\"coverage\":{\"scanned\":1,\"skipped\":0,\"failed\":0,\"truncated\":0,\"limit_reasons\":[]}}\n",
+               (long)getpid(), (long long)now, timestamp, timestamp, system_info.sysname, system_info.release,
+               system_info.machine, system_info.sysname, system_info.release, system_info.machine, processors, page_size);
+        return 0;
+    }
+    printf("%-16s %s %s\n%-16s %s\n", "system", system_info.sysname, system_info.release,
+           "architecture", system_info.machine);
     if (processors > 0) printf("%-16s %ld\n", "logical-cpus", processors);
     if (page_size > 0) printf("%-16s %ld bytes\n", "page-size", page_size);
 #if defined(__linux__)

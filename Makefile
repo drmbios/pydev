@@ -27,7 +27,7 @@ CURL_CPPFLAGS := -DPYDEV_HAVE_CURL=0
 CURL_LIBS :=
 endif
 
-.PHONY: all clean check python-check check-no-sqlite check-no-curl sanitize
+.PHONY: all clean check python-check mcp-check check-no-sqlite check-no-curl sanitize
 all: $(TOOLS:%=$(BIN_DIR)/%)
 
 $(BIN_DIR):
@@ -68,6 +68,10 @@ check: all
 python-check:
 	python3 -m compileall -q .
 	python3 -m unittest -v test_apps.py
+	python3 -m unittest discover -v -s tests -p 'test_*.py'
+
+mcp-check:
+	python3 tests/mcp_integration.py
 
 check-no-sqlite: clean
 	$(MAKE) SQLITE_AVAILABLE=0 $(BIN_DIR)/sql

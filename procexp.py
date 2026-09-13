@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import pwd
 import sys
+import argparse
+import json
 from pathlib import Path
 
 PROC = Path("/proc")
@@ -43,7 +45,14 @@ def processes() -> list[dict[str, str | int]]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = sys.argv[1:] if argv is None else argv
+    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument("pid", nargs="?", type=int)
+    parser.add_argument("--interval", type=float, default=1.0); parser.add_argument("--limit", type=int, default=256); parser.add_argument("--json", action="store_true")
+    parsed = parser.parse_args(sys.argv[1:] if argv is None else argv)
+    if parsed.json:
+        from pydev_ai.collectors import inspect_process, list_processes
+        response = inspect_process(parsed.pid, parsed.interval) if parsed.pid else list_processes(parsed.interval, parsed.limit)
+        print(json.dumps(response, sort_keys=True)); return 0 if response["status"] != "failure" else 2
+    args = [str(parsed.pid)] if parsed.pid else []
     try:
         items = [process_info(int(args[0]))] if len(args) == 1 else processes() if not args else (_ for _ in ()).throw(ValueError())
         for item in items:

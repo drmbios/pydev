@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Twenty-seven hardened command-line tools implemented in native C11 and Python.">
+  <meta name="description" content="Hardened C11 and Python command-line tools with a read-only AI operations interface.">
   <meta name="theme-color" content="#08110f">
   <meta property="og:title" content="pydev — small tools, rebuilt properly">
-  <meta property="og:description" content="Twenty-seven C11 and Python tools with bounded inputs, sanitizer checks, Unix administration, and threat hunting.">
+  <meta property="og:description" content="C11 and Python tools with bounded inputs, structured evidence, local MCP, Unix administration, and threat hunting.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://drmbios.github.io/pydev/">
   <meta name="twitter:card" content="summary">
@@ -21,6 +21,7 @@
     <a class="brand" href="#top" aria-label="pydev home"><span>~/</span>pydev</a>
     <nav aria-label="Main navigation">
       <a href="#tools">Tools</a>
+      <a href="#ai">AI interface</a>
       <a href="#updates">Updates</a>
       <a href="#security">Security</a>
       <a href="#build">Build</a>
@@ -33,13 +34,13 @@
       <div class="hero-copy">
         <p class="eyebrow"><span class="pulse"></span> C11 · POSIX · OPEN SOURCE</p>
         <h1>Small tools.<br><em>Rebuilt properly.</em></h1>
-        <p class="lede">Twenty-seven focused command-line tools now ship in both native C11 and readable Python—with bounded inputs, Unix administration, threat hunting, and tests designed to break them.</p>
+        <p class="lede">Focused command-line tools in native C11 and readable Python—with bounded inputs, Unix administration, threat hunting, and a read-only interface for local AI troubleshooting.</p>
         <div class="hero-actions">
           <a class="button primary" href="#build">Build the toolkit</a>
           <a class="button secondary" href="https://github.com/drmbios/pydev">View source ↗</a>
         </div>
         <dl class="metrics" aria-label="Project highlights">
-          <div><dt>2×27</dt><dd>C + Python editions</dd></div>
+          <div><dt>C + Py</dt><dd>independent editions</dd></div>
           <div><dt>bounded</dt><dd>input budgets</dd></div>
           <div><dt>0</dt><dd>shell calls</dd></div>
         </dl>
@@ -98,12 +99,26 @@ c 38
       </div>
     </section>
 
+    <section class="section" id="ai">
+      <div class="section-heading">
+        <div><p class="eyebrow">02 / STRUCTURED EVIDENCE</p><h2>Useful to humans.<br>Safe for local agents.</h2></div>
+        <p>The optional pydev AI adapter produces versioned JSON with evidence IDs, explicit coverage, units, capability discovery, and honest unsupported states.</p>
+      </div>
+      <div class="tool-grid">
+        <article class="tool-card featured"><span class="tool-number">JSON 1.0</span><div class="tool-icon">{ }</div><h3>Evidence contract</h3><p>Stable status, timestamps, platform, measurements, evidence, warnings, errors, and coverage for every collector.</p><code>python3 -m pydev_ai capabilities</code></article>
+        <article class="tool-card featured"><span class="tool-number">MCP</span><div class="tool-icon">AI</div><h3>Read-only server</h3><p>Twelve bounded stdio tools with strict filesystem roots and no shell, mutation, termination, installation, or network access.</p><code>python3 -m pydev_ai.mcp_server --root PATH</code></article>
+        <article class="tool-card"><span class="tool-number">FLOW</span><div class="tool-icon">CPU</div><h3>Pressure diagnosis</h3><p>Correlates correctly sampled host and process rates while separating facts, hypotheses, missing evidence, and next checks.</p><code>pydev-ai diagnose-pressure</code></article>
+        <article class="tool-card"><span class="tool-number">FLOW</span><div class="tool-icon">AV</div><h3>File investigation</h3><p>Connects file identity, bounded inspection, Antivermis indicators, startup metadata, and running-path observations.</p><code>pydev-ai --root PATH investigate-file FILE</code></article>
+      </div>
+    </section>
+
     <section class="section" id="updates">
       <div class="section-heading">
-        <div><p class="eyebrow">02 / RECENT UPDATES</p><h2>One week.<br>Four focused releases.</h2></div>
+        <div><p class="eyebrow">03 / RECENT UPDATES</p><h2>Built in layers.<br>Verified at boundaries.</h2></div>
         <p>The project now maintains matching Python and C11 editions, with security boundaries documented and exercised in both.</p>
       </div>
       <div class="tool-grid">
+        <article class="tool-card featured"><span class="tool-number">SEP 13</span><div class="tool-icon">AI</div><h3>Operations interface</h3><p>Added structured evidence collectors, deterministic workflows, correct sampled metrics, strict filesystem roots, and optional local MCP.</p><code>make python-check · make mcp-check</code></article>
         <article class="tool-card featured"><span class="tool-number">AUG 23</span><div class="tool-icon">PY</div><h3>Python parity</h3><p>Added independent Python 3.9+ counterparts for every user-facing native tool, including Antivermis and the Linux administration suite.</p><code>make python-check</code></article>
         <article class="tool-card featured"><span class="tool-number">AUG 19</span><div class="tool-icon">AV</div><h3>Threat hunting</h3><p>Added Antivermis signature updates with HTTPS-only remote feeds, SHA-256 verification, parser validation, and atomic installation.</p><code>antivermis --update-db URL DB</code></article>
         <article class="tool-card"><span class="tool-number">AUG 15</span><div class="tool-icon">SYS</div><h3>Unix utility suite</h3><p>Added Linux administration plus six cross-platform Sysinternals/NirSoft-inspired terminal tools.</p><code>traceflow · syswatch · coreinfo</code></article>
@@ -114,7 +129,7 @@ c 38
 
     <section class="security" id="security">
       <div class="security-copy">
-        <p class="eyebrow">03 / BUILT DEFENSIVELY</p>
+        <p class="eyebrow">04 / BUILT DEFENSIVELY</p>
         <h2>Inputs are hostile.<br>Tools should be calm.</h2>
         <p>These utilities assume files can be oversized, strings malformed, and arguments malicious. Limits are part of the product—not an afterthought.</p>
         <a href="https://github.com/drmbios/pydev/tree/master/tests">Explore the abuse tests ↗</a>
@@ -129,8 +144,8 @@ c 38
 
     <section class="section build-section" id="build">
       <div class="section-heading">
-        <div><p class="eyebrow">04 / GET STARTED</p><h2>Three commands.</h2></div>
-        <p>You need a C11 compiler, Make, and the SQLite 3 development library. Python is only required for the optional pip wrapper.</p>
+        <div><p class="eyebrow">05 / GET STARTED</p><h2>Three commands.</h2></div>
+        <p>You need a C11 compiler and Make. SQLite is optional; Python 3.9+ runs the Python and structured tools, while MCP needs Python 3.10+.</p>
       </div>
       <div class="command-box">
         <div class="command-tabs"><span>BUILD</span><button type="button" id="copy-command" aria-label="Copy build commands">COPY</button></div>
@@ -141,7 +156,7 @@ c 38
       <div class="build-links">
         <a href="https://github.com/drmbios/pydev#pydev-native-tools"><span>README</span><b>Full documentation →</b></a>
         <a href="https://github.com/drmbios/pydev/blob/master/LICENSE"><span>LICENSE</span><b>Apache 2.0 →</b></a>
-        <a href="https://github.com/drmbios/pydev/blob/master/CHANGELOG.md"><span>CHANGELOG</span><b>August 9–16 history →</b></a>
+        <a href="https://github.com/drmbios/pydev/blob/master/CHANGELOG.md"><span>CHANGELOG</span><b>Development history →</b></a>
         <a href="https://github.com/drmbios/pydev/pulls"><span>CONTRIBUTE</span><b>Open a pull request →</b></a>
       </div>
     </section>

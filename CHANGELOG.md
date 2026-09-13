@@ -3,6 +3,31 @@
 All notable project changes are recorded here. Dates use the Asia/Baku project
 timezone.
 
+## 2026-09-13
+
+### Added
+
+- `pydev_ai`, a versioned structured JSON adapter with explicit evidence,
+  coverage, capabilities, status, units, timestamps, and structured errors.
+- Deterministic system-pressure, file-indicator, and AI-worker-health workflows.
+- Optional official MCP Python SDK v2 stdio server with twelve read-only tools,
+  strict filesystem roots, concurrency/work/response limits, and no shell,
+  mutation, or network tools.
+- Optional NVIDIA and explicitly configured inference-service telemetry that
+  reports unsupported or missing measurements without fabricated values.
+- Contract, metric, boundary, prompt-injection, timeout, counter-reset, PID
+  reuse, and real MCP session tests.
+
+### Fixed and hardened
+
+- Correct delta-based Linux CPU, process, network, and disk rates, including
+  guest-time handling, PID identity, counter resets, interface churn, and
+  top-level block-device accounting.
+- Added structured JSON modes to selected existing C/Python commands and a
+  stable, machine-discoverable Antivermis rule inventory.
+- Rooted file access now rejects symlink escapes and blocking special files;
+  previews redact likely secrets and treat collected text as untrusted data.
+
 ## 2026-08-23
 
 ### Added

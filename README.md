@@ -12,7 +12,7 @@ for everyday terminal work, portability, comparison, and learning.
 - A C11 compiler (`cc`, GCC, or Clang)
 - POSIX-compatible system (Linux, macOS, or BSD)
 - SQLite 3 development library for full `sql` functionality (optional)
-- Python 3 and pip only when using `qpipper`
+- Python 3.9+ for Python tools; Python 3.10+ for optional MCP support
 
 ## Build
 
@@ -35,6 +35,11 @@ python3 lsx.py -S .
 bin/antivermis --db signatures.hsb ~/Downloads
 python3 antivermis.py --db signatures.hsb ~/Downloads
 ```
+
+For the versioned JSON collectors, evidence-linked workflows, and optional
+read-only MCP server, see [AI toolkit](docs/AI_TOOLKIT.md), [MCP setup](docs/MCP.md),
+and the [response schema](docs/schema/response-1.0.json). The machine interface
+is additive: existing C binaries and Python commands remain available.
 
 Executables are written to `bin/`:
 
@@ -219,7 +224,7 @@ the fallback build explicitly. The updater similarly auto-detects libcurl; run
   explainable threat indicators plus opt-in, hash-verified database updates.
 - Added repeatable functional, oversized-input, and injection-resistance tests.
 
-See [CHANGELOG.md](CHANGELOG.md) for the dated August 9–23 development history.
+See [CHANGELOG.md](CHANGELOG.md) for the dated development history.
 
 ## Safety and resource limits
 
