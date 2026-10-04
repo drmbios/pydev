@@ -16,7 +16,8 @@ and write-enabled default Actions tokens.
 - Private vulnerability reporting enabled.
 - Default Actions token reduced to read access; Actions cannot approve PRs.
 - `master` requires a pull request, an up-to-date branch, passing `test` CI,
-  and resolved conversations. Protection also applies to administrators;
+  dependency review, all three CodeQL analysis jobs, and resolved conversations.
+  Protection also applies to administrators;
   force pushes and deletion are disallowed. No second-person review is required
   because this is a single-maintainer repository.
 
@@ -38,7 +39,8 @@ their existence on a feature branch does not close the default-branch alerts.
 
 The local C functional suite and AddressSanitizer/UndefinedBehaviorSanitizer
 suite passed, as did 33 Python tests including 13 new security regressions.
-GitHub checks exercise the Linux-specific paths and MCP integration on the PR.
+GitHub CI also passed its Linux build, Python regressions, real MCP stdio
+integration, dependency fallback builds, and sanitizer suite on PR #8.
 Leak detection availability depends on the sanitizer runtime; successful tests
 are not a guarantee of no memory leaks, races, or undiscovered vulnerabilities.
 
