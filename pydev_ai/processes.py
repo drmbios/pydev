@@ -87,13 +87,17 @@ def sample_processes(interval: float = 1.0, max_processes: int = 4096,
     if not 0.1 <= interval <= 30.0: raise ValueError("sample interval must be 0.1-30 seconds")
     hz = clock_ticks or int(os.sysconf("SC_CLK_TCK"))
     before, skipped_before, failed_before = read_counters(proc, max_processes)
-    start = time.monotonic(); sleeper(interval); elapsed = time.monotonic() - start
+    start = time.monotonic(); sleeper(interval)
     after, skipped_after, failed_after = read_counters(proc, max_processes)
+    elapsed = time.monotonic() - start
     rates, disappeared, reused, reset = process_cpu_rates(before, after, elapsed, hz)
     rows, metadata_failed = [], 0
     for pid, rate in rates.items():
         try: metadata = process_metadata(pid, proc)
         except (OSError, ValueError): metadata_failed += 1; continue
+        if metadata["start_identity_ticks"] != after[pid].start_ticks:
+            reused += 1
+            continue
         metadata["cpu_percent_one_core"] = rate
         rows.append(metadata)
     disappeared = len(set(before) - set(after))

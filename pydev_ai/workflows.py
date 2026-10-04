@@ -15,6 +15,7 @@ from .telemetry import InferenceEndpoint, collect_inference, collect_nvidia
 def _child_problem(builder: ResponseBuilder, name: str, response: dict) -> None:
     if response["status"] != "success":
         builder.warnings.append("{} returned {}".format(name, response["status"]))
+        builder.coverage.failed += 1
     for error in response.get("errors", []):
         builder.errors.append(StructuredError("{}_{}".format(name, error["code"]), error["message"]))
 
@@ -66,7 +67,7 @@ def investigate_file_indicators(policy: RootPolicy, path: str, database: Optiona
         process_matches = []
         if process_report:
             _child_problem(builder, "processes", process_report)
-            process_matches = [row for row in process_report.get("data", {}).get("processes", []) if row.get("executable") == target]
+            process_matches = [row for row in process_report.get("data", {}).get("processes", []) if target is not None and row.get("executable") == target]
         startup_matches = [entry for entry in startup_report.get("data", {}).get("entries", []) if entry.get("path") == target]
         facts = {"file": file_report.get("data", {}), "security_findings": scan_report.get("data", {}).get("findings", []),
                  "matching_running_executables": process_matches, "matching_startup_entries": startup_matches}

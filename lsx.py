@@ -35,6 +35,8 @@ def real_size(path: Path, seen: set[tuple[int, int]] | None = None) -> int:
         try:
             with os.scandir(current) as children:
                 for child in children:
+                    if entries + len(stack) >= 100_000:
+                        raise RuntimeError("entry limit exceeded")
                     if not child.is_symlink(): stack.append((Path(child.path), depth + 1))
                     else: total += child.stat(follow_symlinks=False).st_size
         except OSError: pass
@@ -44,11 +46,14 @@ def real_size(path: Path, seen: set[tuple[int, int]] | None = None) -> int:
 def list_entries(path: Path, hidden: bool = False, reverse: bool = False, size_sort: bool = False) -> list[tuple[str, int, str, str]]:
     candidates = [path] if not path.is_dir() else [Path(entry.path) for entry in os.scandir(path) if hidden or not entry.name.startswith(".")]
     rows = []
+    sizes = {}
     for item in candidates:
         info = item.lstat()
         kind = "dir" if stat.S_ISDIR(info.st_mode) else "link" if stat.S_ISLNK(info.st_mode) else "file"
-        rows.append((item.name, stat.S_IMODE(info.st_mode), kind, human_size(real_size(item))))
-    rows.sort(key=(lambda row: real_size(path / row[0])) if size_sort and path.is_dir() else (lambda row: row[0]), reverse=reverse)
+        sizes[item.name] = real_size(item)
+        rows.append((item.name, stat.S_IMODE(info.st_mode), kind, human_size(sizes[item.name])))
+    rows.sort(key=(lambda row: sizes[row[0]]) if size_sort else (lambda row: row[0]),
+              reverse=(not reverse) if size_sort else reverse)
     return rows
 
 

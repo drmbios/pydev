@@ -23,6 +23,7 @@ from .policy import RootPolicy, redact
 from .processes import process_metadata, sample_processes
 
 MAX_FILE_BYTES = 16 * 1024 * 1024
+MAX_STARTUP_ENTRIES = 10_000
 
 
 def get_capabilities(request_id: Optional[str] = None) -> dict:
@@ -115,6 +116,7 @@ def inspect_file(policy: RootPolicy, path: str, max_bytes: int = MAX_FILE_BYTES,
             raise ValueError("invalid file evidence limits")
         authorized = policy.authorize(path)
         digest, sample, info = _bounded_hash(authorized, max_bytes)
+        _, sample_redactions = redact(sample.decode("utf-8", "replace"))
         printable = stringsx.strings(sample, string_minimum)[:128]
         redacted, count = redact("\n".join(printable))
         if count: builder.warnings.append("{} likely secret value(s) redacted; redaction is heuristic".format(count))
@@ -122,7 +124,9 @@ def inspect_file(policy: RootPolicy, path: str, max_bytes: int = MAX_FILE_BYTES,
         builder.coverage.scanned = 1
         return builder.finish({"path": str(authorized), "type": "regular_file", "size_bytes": info.st_size,
             "mode_octal": "{:03o}".format(stat.S_IMODE(info.st_mode)), "mtime_ns": info.st_mtime_ns,
-            "sha256": digest, "crc32_security_use": False, "hex_preview": sample[:hex_bytes].hex(),
+            "sha256": digest, "crc32_security_use": False,
+            "hex_preview": None if sample_redactions else sample[:hex_bytes].hex(),
+            "hex_preview_omitted_for_redaction": bool(sample_redactions),
             "printable_strings": redacted.splitlines(), "evidence_id": evidence_id}, capabilities=policy.capabilities())
     return execute("inspect_file", operation, request_id)
 
@@ -152,18 +156,27 @@ def list_startup_entries(policy: RootPolicy, inspect_contents: bool = False,
     def operation(builder: ResponseBuilder) -> dict:
         entries = []
         candidates = []
+        visited = 0
         for location in autostartx.locations():
+            if builder.coverage.truncated: break
             try: authorized = policy.authorize(str(location))
             except (FileNotFoundError, PermissionError):
                 builder.coverage.skipped += 1
                 continue
             try:
-                candidates.extend(Path(entry.path) for entry in os.scandir(authorized)
-                                  if not entry.is_symlink())
+                with os.scandir(authorized) as directory:
+                    for entry in directory:
+                        if visited >= MAX_STARTUP_ENTRIES:
+                            builder.coverage.truncated += 1
+                            builder.coverage.limit_reasons.append("startup entry limit")
+                            break
+                        visited += 1
+                        if not entry.is_symlink(): candidates.append(Path(entry.path))
+                        else: builder.coverage.skipped += 1
             except OSError as error:
                 builder.coverage.failed += 1
                 builder.errors.append(StructuredError("startup_list_failed", str(error)))
-        for path in candidates[:10_000]:
+        for path in candidates:
             try: authorized = policy.authorize(str(path))
             except (FileNotFoundError, PermissionError): builder.coverage.skipped += 1; continue
             try:
@@ -175,7 +188,7 @@ def list_startup_entries(policy: RootPolicy, inspect_contents: bool = False,
                     if count: builder.warnings.append("likely secret redacted in startup entry")
                 entry["evidence_id"] = builder.add_evidence("startup_entry", {"listed": True, "content_inspected": entry["content_inspected"]}, str(authorized))
                 entries.append(entry); builder.coverage.scanned += 1
-            except OSError as error:
+            except (OSError, ValueError) as error:
                 builder.coverage.failed += 1; builder.errors.append(StructuredError("startup_read_failed", str(error)))
         return builder.finish({"entries": entries, "interpretation": "listing proves only that an entry exists, not that it is active or malicious"}, capabilities=policy.capabilities())
     return execute("list_startup_entries", operation, request_id)
@@ -193,7 +206,7 @@ def scan_files(policy: RootPolicy, paths: List[str], database: Optional[str] = N
                max_files: int = 10_000, max_bytes_per_file: int = 16 * 1024 * 1024,
                request_id: Optional[str] = None) -> dict:
     def operation(builder: ResponseBuilder) -> dict:
-        if not paths or len(paths) > 64 or not 1 <= max_files <= 100_000 or not 1 <= max_bytes_per_file <= 64 * 1024 * 1024:
+        if not paths or len(paths) > 64 or not 1 <= max_files <= 1_000_000 or not 1 <= max_bytes_per_file <= 64 * 1024 * 1024:
             raise ValueError("invalid scan limits")
         authorized = [policy.authorize(path) for path in paths]
         db_path = policy.authorize(database) if database else None

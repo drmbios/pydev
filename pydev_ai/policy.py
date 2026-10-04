@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Iterable, List
 
 SECRET_PATTERNS = [
+    re.compile(r"-----BEGIN ([A-Z ]*PRIVATE KEY)-----[\s\S]*?(?:-----END \1-----|\Z)"),
     re.compile(r"(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*([^\s,;]{6,})"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),

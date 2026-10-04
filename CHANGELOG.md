@@ -3,6 +3,36 @@
 All notable project changes are recorded here. Dates use the Asia/Baku project
 timezone.
 
+## 2026-10-04
+
+### Fixed and hardened
+
+- Enforced C/Python Antivermis byte limits while files grow, bounded C directory
+  visits, retained admitted files during truncated Python scans, and aligned
+  JSON exit codes with findings and incomplete coverage.
+- Anchored recursive C scans to directory descriptors and changed SAR input to
+  validate the opened descriptor without a blocking special-file race. SAR
+  byte accounting now includes NUL bytes, and C CPU totals exclude duplicate
+  guest counters.
+- Suppressed hex previews containing detected secrets and redacted private-key
+  bodies. Bounded startup enumeration and preserved partial results when a
+  startup file is too large.
+- Rechecked process identity before publishing metadata, prevented missing-file
+  correlations with unknown executable paths, and propagated partial workflow
+  coverage. Rejected malformed, negative, boolean, and non-finite telemetry.
+- Fixed largest-first directory sorting and avoided a second recursive size
+  scan. Codebreaker now accepts only ASCII digits and uses system randomness.
+- Rejected HTTPS update downgrades before following redirects and prevented
+  remote Python signature manifests from reading local database URLs.
+- Added security regressions, a vulnerability-reporting policy, Dependabot
+  configuration, dependency review, commit-pinned Actions, and restricted Pages
+  deployment to the default branch.
+
+Repository-side controls were enabled separately: CodeQL extended queries,
+secret scanning/push protection, vulnerability alerts, Dependabot security
+updates, private reporting, read-only default workflow tokens, and protected
+`master`. See `docs/SECURITY_REVIEW.md` for verification and alert-triage limits.
+
 ## 2026-09-13
 
 ### Added

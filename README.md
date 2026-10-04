@@ -228,6 +228,10 @@ See [CHANGELOG.md](CHANGELOG.md) for the dated development history.
 
 ## Safety and resource limits
 
+Report vulnerabilities privately using the [security policy](SECURITY.md).
+The [October security review](docs/SECURITY_REVIEW.md) records the applied GitHub
+controls, fixes, and remaining limitations.
+
 Security limits:
 
 - File readers reject inputs larger than 16 MiB.

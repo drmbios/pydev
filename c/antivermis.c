@@ -49,6 +49,7 @@ struct scanner {
     size_t signature_count;
     unsigned long long files;
     unsigned long long directories;
+    unsigned long long entries;
     unsigned long long bytes;
     unsigned long long findings;
     unsigned long long skipped;
@@ -279,8 +280,7 @@ static unsigned inspect_text(const unsigned char *data, size_t length, unsigned 
     return flags;
 }
 
-static int scan_file(struct scanner *scanner, const char *path, const struct stat *expected) {
-    int descriptor;
+static int scan_file(struct scanner *scanner, const char *path, int descriptor, const struct stat *expected) {
     struct stat before, after;
     struct av_sha256 sha;
     unsigned char digest[32], buffer[8192 + 256];
@@ -293,10 +293,8 @@ static int scan_file(struct scanner *scanner, const char *path, const struct sta
     const char *label;
     if ((unsigned long long)expected->st_size > scanner->max_file_bytes ||
         scanner->bytes > AV_TOTAL_BYTES - (unsigned long long)expected->st_size) {
-        ++scanner->skipped; return 0;
+        (void)close(descriptor); ++scanner->skipped; ++scanner->errors; return 0;
     }
-    descriptor = open(path, O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC);
-    if (descriptor < 0) { ++scanner->errors; return 0; }
     if (fstat(descriptor, &before) != 0 || !S_ISREG(before.st_mode) || before.st_dev != expected->st_dev ||
         before.st_ino != expected->st_ino || before.st_size != expected->st_size) {
         (void)close(descriptor); ++scanner->errors; return 0;
@@ -305,6 +303,10 @@ static int scan_file(struct scanner *scanner, const char *path, const struct sta
     while ((amount = read(descriptor, buffer + carry, 8192U)) != 0) {
         size_t combined, keep;
         if (amount < 0) { if (errno == EINTR) continue; (void)close(descriptor); ++scanner->errors; return 0; }
+        if ((unsigned long long)amount > scanner->max_file_bytes - read_total ||
+            (unsigned long long)amount > AV_TOTAL_BYTES - scanner->bytes - read_total) {
+            (void)close(descriptor); ++scanner->errors; return 0;
+        }
         av_sha256_update(&sha, buffer + carry, (size_t)amount);
         read_total += (unsigned long long)amount;
         combined = carry + (size_t)amount;
@@ -350,26 +352,33 @@ static int scan_file(struct scanner *scanner, const char *path, const struct sta
     return 0;
 }
 
-static int scan_path(struct scanner *scanner, const char *path, unsigned depth) {
+static int scan_path_at(struct scanner *scanner, int parent, const char *name,
+                        const char *path, unsigned depth) {
     struct stat info;
+    int descriptor;
+    struct stat opened_info;
+    if (scanner->entries++ >= scanner->max_files) { scanner->limit_hit = 1; return 0; }
     if (scanner->files >= scanner->max_files) { scanner->limit_hit = 1; return 0; }
-    if (lstat(path, &info) != 0) { ++scanner->errors; return 0; }
+    if (fstatat(parent, name, &info, AT_SYMLINK_NOFOLLOW) != 0) { ++scanner->errors; return 0; }
     if (S_ISLNK(info.st_mode)) { ++scanner->skipped; return 0; }
-    if (S_ISREG(info.st_mode)) { ++scanner->files; return scan_file(scanner, path, &info); }
-    if (!S_ISDIR(info.st_mode)) { ++scanner->skipped; return 0; }
-    if (depth >= AV_MAX_DEPTH) { scanner->limit_hit = 1; return 0; }
+    if (!S_ISDIR(info.st_mode) && !S_ISREG(info.st_mode)) { ++scanner->skipped; return 0; }
+    descriptor = openat(parent, name, O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC);
+    if (descriptor < 0 || fstat(descriptor, &opened_info) != 0 ||
+        opened_info.st_dev != info.st_dev || opened_info.st_ino != info.st_ino ||
+        (opened_info.st_mode & S_IFMT) != (info.st_mode & S_IFMT)) {
+        if (descriptor >= 0) (void)close(descriptor);
+        ++scanner->errors; return 0;
+    }
+    if (S_ISREG(opened_info.st_mode)) {
+        ++scanner->files;
+        return scan_file(scanner, path, descriptor, &opened_info);
+    }
+    if (depth >= AV_MAX_DEPTH) { (void)close(descriptor); scanner->limit_hit = 1; return 0; }
     {
-        int directory_descriptor = open(path, O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC | O_DIRECTORY);
         DIR *directory;
         struct dirent *entry;
-        struct stat opened_info;
-        if (directory_descriptor < 0 || fstat(directory_descriptor, &opened_info) != 0 ||
-            !S_ISDIR(opened_info.st_mode) || opened_info.st_dev != info.st_dev || opened_info.st_ino != info.st_ino) {
-            if (directory_descriptor >= 0) (void)close(directory_descriptor);
-            ++scanner->errors; return 0;
-        }
-        directory = fdopendir(directory_descriptor);
-        if (!directory) { (void)close(directory_descriptor); ++scanner->errors; return 0; }
+        directory = fdopendir(descriptor);
+        if (!directory) { (void)close(descriptor); ++scanner->errors; return 0; }
         ++scanner->directories;
         while (!scanner->limit_hit && (entry = readdir(directory)) != NULL) {
             char child[AV_PATH_SIZE];
@@ -377,11 +386,15 @@ static int scan_path(struct scanner *scanner, const char *path, unsigned depth) 
             if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
             length = snprintf(child, sizeof child, "%s/%s", path, entry->d_name);
             if (length < 0 || (size_t)length >= sizeof child) { ++scanner->skipped; continue; }
-            (void)scan_path(scanner, child, depth + 1U);
+            (void)scan_path_at(scanner, dirfd(directory), entry->d_name, child, depth + 1U);
         }
         if (closedir(directory) != 0) ++scanner->errors;
     }
     return 0;
+}
+
+static int scan_path(struct scanner *scanner, const char *path, unsigned depth) {
+    return scan_path_at(scanner, AT_FDCWD, path, path, depth);
 }
 
 static void scan_system(struct scanner *scanner) {

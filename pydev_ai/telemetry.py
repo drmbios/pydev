@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import shutil
 import subprocess
 import urllib.error
@@ -23,14 +24,25 @@ def collect_nvidia(timeout: float = 5.0) -> dict:
         result = subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
         return {"status": "failure", "backend": "nvidia-smi", "reason": "probe timed out and was terminated"}
+    except (OSError, UnicodeError):
+        return {"status": "failure", "backend": "nvidia-smi", "reason": "probe could not be executed or decoded"}
     if result.returncode != 0:
         return {"status": "failure", "backend": "nvidia-smi", "reason": result.stderr[:1024] or "probe failed"}
     devices = []
     for line in result.stdout.splitlines()[:64]:
         fields = [field.strip() for field in line.split(",")]
         if len(fields) != 5: continue
-        devices.append({"index": int(fields[0]), "name": fields[1], "utilization_percent": float(fields[2]),
-                        "vram_total_bytes": int(fields[3]) * 1024 * 1024, "vram_used_bytes": int(fields[4]) * 1024 * 1024})
+        try:
+            index, utilization = int(fields[0]), float(fields[2])
+            total, used = int(fields[3]), int(fields[4])
+            if index < 0 or not math.isfinite(utilization) or not 0 <= utilization <= 100 or not 0 <= used <= total:
+                continue
+        except ValueError:
+            continue
+        devices.append({"index": index, "name": fields[1], "utilization_percent": utilization,
+                        "vram_total_bytes": total * 1024 * 1024, "vram_used_bytes": used * 1024 * 1024})
+    if not devices:
+        return {"status": "unsupported", "backend": "nvidia-smi", "reason": "no complete numeric GPU measurements available"}
     return {"status": "success", "backend": "nvidia-smi", "devices": devices}
 
 
@@ -70,10 +82,12 @@ def collect_inference(endpoint: Optional[InferenceEndpoint], timeout: float = 3.
         return {"status": "failure", "enabled": True, "reason": "telemetry response exceeds limit"}
     try: data = json.loads(payload.decode("utf-8"))
     except (UnicodeError, json.JSONDecodeError): return {"status": "failure", "enabled": True, "reason": "invalid JSON response"}
+    if not isinstance(data, dict):
+        return {"status": "failure", "enabled": True, "reason": "telemetry JSON must be an object"}
     allowed = {}
     for key, unit in (("queue_depth", "requests"), ("request_latency_ms", "milliseconds"),
                       ("throughput_requests_per_second", "requests/second"), ("tokens_per_second", "tokens/second")):
-        if key in data and isinstance(data[key], (int, float)):
+        if key in data and type(data[key]) in (int, float) and 0 <= data[key] < float("inf"):
             allowed[key] = {"value": data[key], "unit": unit}
     return {"status": "success", "enabled": True, "metrics": allowed,
             "warning": "Only service-exported values are reported; missing metrics are not estimated."}

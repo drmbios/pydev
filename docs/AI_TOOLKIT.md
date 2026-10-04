@@ -14,7 +14,7 @@ python3 -m pip install -e .
 python3 -m pydev_ai capabilities
 python3 -m pydev_ai system-info
 python3 -m pydev_ai metrics --interval 1
-python3 -m pydev_ai file --root "$PWD" README.md
+python3 -m pydev_ai --root "$PWD" file README.md
 python3 -m pydev_ai diagnose-pressure --interval 1
 ```
 
@@ -75,4 +75,3 @@ hosted dashboard.
 Future work may add signed signature manifests, archive scanning in a separate
 resource sandbox, native macOS metric backends, and more GPU providers. Those
 items are not implemented today.
-

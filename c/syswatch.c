@@ -50,7 +50,8 @@ static int read_cpu(struct sample *sample) {
                    &values[5], &values[6], &values[7], &values[8], &values[9]);
     if (count < 4) return -1;
     sample->cpu_total = 0;
-    for (index = 0; index < (size_t)count; ++index) sample->cpu_total += values[index];
+    /* guest/guest_nice are already included in user/nice. */
+    for (index = 0; index < (size_t)count && index < 8U; ++index) sample->cpu_total += values[index];
     sample->cpu_idle = values[3] + values[4];
     return 0;
 }
@@ -180,22 +181,20 @@ static int show_sar(const char *path) {
     int descriptor;
     char buffer[4096];
     size_t total = 0;
-    if (lstat(path, &info) != 0 || !S_ISREG(info.st_mode) || info.st_size < 0 ||
-        (unsigned long long)info.st_size > TEXT_LIMIT) {
-        fputs("syswatch: SAR input must be a regular text file up to 16 MiB\n", stderr);
-        return 1;
-    }
-    descriptor = open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
-    if (descriptor == -1 || fstat(descriptor, &info) != 0 || !S_ISREG(info.st_mode)) {
+    descriptor = open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
+    if (descriptor == -1 || fstat(descriptor, &info) != 0 || !S_ISREG(info.st_mode) ||
+        info.st_size < 0 || (unsigned long long)info.st_size > TEXT_LIMIT) {
         if (descriptor != -1) (void)close(descriptor);
+        fputs("syswatch: SAR input must be a regular text file up to 16 MiB\n", stderr);
         return 1;
     }
     file = fdopen(descriptor, "r");
     if (!file) { (void)close(descriptor); return 1; }
     printf("SAR report: %s\n", path);
-    while (fgets(buffer, sizeof buffer, file)) {
+    for (;;) {
         size_t index;
-        size_t length = strlen(buffer);
+        size_t length = fread(buffer, 1U, sizeof buffer, file);
+        if (length == 0U) break;
         total += length;
         if (total > TEXT_LIMIT) { (void)fclose(file); return 1; }
         for (index = 0; index < length; ++index) {
@@ -204,7 +203,11 @@ static int show_sar(const char *path) {
             else putchar('?');
         }
     }
-    return fclose(file) == 0 ? 0 : 1;
+    {
+        int failed = ferror(file);
+        if (fclose(file) != 0) failed = 1;
+        return failed ? 1 : 0;
+    }
 }
 
 int main(int argc, char **argv) {
