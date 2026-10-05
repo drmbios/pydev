@@ -7,12 +7,17 @@ also has a readable Python counterpart with the same purpose and safety model.
 Neither edition wraps or replaces the other. This makes the repository useful
 for everyday terminal work, portability, comparison, and learning.
 
+The [quantum-host and post-quantum guide](docs/QUANTUM.md) covers five new tools,
+the selected Linux host utilities, OpenSSL requirements, safe key handling,
+circuit examples, and the difference between PQ cryptography and a physical QPU.
+
 ## Requirements
 
 - A C11 compiler (`cc`, GCC, or Clang)
 - POSIX-compatible system (Linux, macOS, or BSD)
 - SQLite 3 development library for full `sql` functionality (optional)
-- Python 3.9+ for Python tools; Python 3.10+ for optional MCP support
+- Python 3.9+ for Python tools and cross-edition tests; Python 3.10+ for optional MCP support
+- OpenSSL 3.5+ executable for post-quantum key generation (optional; no new C library dependency)
 
 ## Build
 
@@ -43,6 +48,11 @@ is additive: existing C binaries and Python commands remain available.
 
 Executables are written to `bin/`:
 
+- `pqcheck` — inventory local OpenSSL KEM and signature algorithms
+- `pqkey ALGORITHM NEW_DIRECTORY` — generate ML-KEM or ML-DSA keys without overwrite
+- `qasmcheck FILE` — validate/count a bounded, documented OpenQASM 2 subset
+- `qsim FILE` — ideal CPU statevector simulation, up to 10 qubits and 2,048 gates
+- `qbudget QUBITS` — estimate complex128 statevector payload memory without allocation
 - `cntr FILE` — case-insensitive ASCII letter frequencies
 - `codebreaker [ATTEMPTS]` — four-digit code game
 - `parser_html FILE` — extract quoted `href` values
@@ -55,7 +65,7 @@ Executables are written to `bin/`:
 - `checksum FILE...` — CRC-32 checksums for integrity comparisons
 - `hexview FILE [MAX_BYTES]` — bounded hexadecimal and ASCII file view
 - `stringsx FILE [MIN_LENGTH]` — extract printable strings from binary files
-- `randpass [LENGTH]` — securely generate an unbiased random password
+- `randpass [LENGTH|--quantum]` — unbiased passwords or a 256-bit OS-random hex secret
 - `syscallx NUMBER...` — translate Linux x86-64 syscall numbers into readable explanations
 - `lsx [-aSr] [PATH]` — list entries with numeric permissions and recursive real sizes
 - `traceflow COMMAND [ARG...]` — trace syscall and child-process dependencies as a tree (Linux x86-64)

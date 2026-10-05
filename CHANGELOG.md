@@ -3,6 +3,23 @@
 All notable project changes are recorded here. Dates use the Asia/Baku project
 timezone.
 
+## 2026-10-05
+
+### Added — quantum-host and post-quantum tools
+
+- Five new independent C/Python command pairs: `pqcheck`, `pqkey`, `qasmcheck`,
+  `qsim`, and `qbudget` (32 native tools total).
+- Optional OpenSSL-backed ML-KEM/ML-DSA key generation in new owner-only
+  directories, with bounded shell-free subprocesses and no classical fallback.
+- A restricted, bounded OpenQASM 2 parser, dependency-depth report, ideal
+  10-qubit simulator, and no-allocation statevector memory estimator.
+- `randpass --quantum`: 256 bits of OS-random entropy encoded as hexadecimal;
+  explicitly not a quantum RNG, cipher, or protocol upgrade.
+- Bell-state example, cross-edition regression tests, PQ interoperability tests,
+  and a Linux CI job requiring a working post-quantum OpenSSL backend.
+- A curated Linux quantum-control-host tool selection and a Pages section with
+  practical examples, limitations, and links to the detailed quantum guide.
+
 ## 2026-10-04
 
 ### Fixed and hardened

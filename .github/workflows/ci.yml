@@ -38,3 +38,18 @@ jobs:
         run: make check-no-curl
       - name: Address and undefined-behavior sanitizers
         run: make sanitize
+
+  post-quantum:
+    runs-on: ubuntu-latest
+    container: debian:trixie-slim
+    timeout-minutes: 10
+    steps:
+      - name: Install compiler and OpenSSL 3.5+ backend
+        run: apt-get update && apt-get install -y --no-install-recommends build-essential python3 openssl ca-certificates git
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build both editions and require real PQ interoperability
+        env:
+          PYDEV_REQUIRE_PQ: '1'
+        run: make -j2 && python3 -m unittest discover -v -s tests -p test_quantum.py

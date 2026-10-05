@@ -21,6 +21,7 @@
     <a class="brand" href="#top" aria-label="pydev home"><span>~/</span>pydev</a>
     <nav aria-label="Main navigation">
       <a href="#tools">Tools</a>
+      <a href="#quantum">Quantum / PQC</a>
       <a href="#ai">AI interface</a>
       <a href="#platforms">Platforms</a>
       <a href="#updates">Updates</a>
@@ -50,7 +51,7 @@
         <div class="terminal-bar"><span></span><span></span><span></span><b>pydev — zsh</b></div>
         <pre><code><span class="dim">$</span> git clone https://github.com/drmbios/pydev
 <span class="dim">$</span> cd pydev &amp;&amp; make
-<span class="ok">✓</span> built 27 native tools
+<span class="ok">✓</span> built 32 native tools
 
 <span class="dim">$</span> bin/cntr README.md
 a 131
@@ -100,6 +101,27 @@ c 38
       </div>
     </section>
 
+    <section class="section" id="quantum">
+      <div class="section-heading">
+        <div><p class="eyebrow">NEW / QUANTUM HOSTS + PQC</p><h2>Real capabilities.<br>Clear boundaries.</h2></div>
+        <p>Five new C11 and Python tools for classical Linux/macOS hosts: OpenSSL-backed post-quantum keys, bounded circuit validation, ideal simulation, and memory planning. No physical QPU or quantum RNG is implied.</p>
+      </div>
+      <div class="tool-grid">
+        <article class="tool-card"><span class="tool-number">27</span><div class="tool-icon">PQ</div><h3>pqcheck</h3><p>Inventory local OpenSSL KEM and signature algorithms. Check for ML-KEM and ML-DSA; availability is not a security certification.</p><code>pqcheck</code></article>
+        <article class="tool-card featured"><span class="tool-number">28</span><div class="tool-icon">KEY</div><h3>pqkey</h3><p>Generate ML-KEM or ML-DSA keys with OpenSSL 3.5+. New owner-only directory, no overwrite, no classical fallback. Private keys are unencrypted: protect them.</p><code>pqkey ML-KEM-768 pq-keys</code></article>
+        <article class="tool-card"><span class="tool-number">29</span><div class="tool-icon">QASM</div><h3>qasmcheck</h3><p>Validate a documented OpenQASM 2 subset and report qubits, gates, and dependency depth. Bounded to 20 qubits and 2,048 gates.</p><code>qasmcheck examples/bell.qasm</code></article>
+        <article class="tool-card featured"><span class="tool-number">30</span><div class="tool-icon">|ψ&gt;</div><h3>qsim</h3><p>Simulate ideal circuits on a CPU and print basis-state probabilities. Up to 10 qubits; no shots, noise model, or hardware backend.</p><code>qsim examples/bell.qasm</code></article>
+        <article class="tool-card"><span class="tool-number">31</span><div class="tool-icon">RAM</div><h3>qbudget</h3><p>Estimate dense complex128 statevector memory without allocating it. Thirty qubits need 16 GiB of payload, before runtime overhead.</p><code>qbudget 30</code></article>
+        <article class="tool-card"><span class="tool-number">UPGRADED</span><div class="tool-icon">256</div><h3>randpass --quantum</h3><p>Generate 256 bits of OS-random entropy as 64 hex characters. A high-entropy secret—not a quantum RNG, cipher, or automatic protocol upgrade.</p><code>randpass --quantum</code></article>
+      </div>
+      <p>For Linux control hosts, pair these with <strong>coreinfo, syswatch, procexp, clockres, lsx, Antivermis</strong>, and structured file/system evidence. They inspect classical resources, not qubits or laboratory pulse timing.</p>
+      <div class="build-links">
+        <a href="https://github.com/drmbios/pydev/blob/master/docs/QUANTUM.md"><span>GUIDE</span><b>Examples, safety &amp; host selection →</b></a>
+        <a href="https://github.com/drmbios/pydev/blob/master/examples/bell.qasm"><span>CIRCUIT</span><b>Bell-state example →</b></a>
+        <a href="https://github.com/drmbios/pydev/blob/master/tests/test_quantum.py"><span>TESTS</span><b>Parity &amp; PQ interoperability →</b></a>
+      </div>
+    </section>
+
     <section class="section" id="ai">
       <div class="section-heading">
         <div><p class="eyebrow">02 / STRUCTURED EVIDENCE</p><h2>Useful to humans.<br>Safe for local agents.</h2></div>
@@ -144,6 +166,8 @@ c 38
         <p>The project now maintains matching Python and C11 editions, with security boundaries documented and exercised in both.</p>
       </div>
       <div class="tool-grid">
+        <article class="tool-card featured"><span class="tool-number">OCT 05</span><div class="tool-icon">PQ</div><h3>Quantum-host toolkit</h3><p>Five bounded C/Python additions, post-quantum OpenSSL key interoperability, high-entropy secret generation, and a curated host-tool guide.</p><code>pqcheck · pqkey · qasmcheck · qsim · qbudget</code></article>
+        <article class="tool-card"><span class="tool-number">OCT 04</span><div class="tool-icon">SAFE</div><h3>Security review</h3><p>Fixed scan budgets, descriptor races, telemetry logic, and redaction gaps. Enabled GitHub security scans and protected-branch checks.</p><code>CodeQL · secret scanning · dependency review</code></article>
         <article class="tool-card featured"><span class="tool-number">SEP 13</span><div class="tool-icon">AI</div><h3>Operations interface</h3><p>Added structured evidence collectors, deterministic workflows, correct sampled metrics, strict filesystem roots, and optional local MCP.</p><code>make python-check · make mcp-check</code></article>
         <article class="tool-card featured"><span class="tool-number">AUG 23</span><div class="tool-icon">PY</div><h3>Python parity</h3><p>Added independent Python 3.9+ counterparts for every user-facing native tool, including Antivermis and the Linux administration suite.</p><code>make python-check</code></article>
         <article class="tool-card featured"><span class="tool-number">AUG 19</span><div class="tool-icon">AV</div><h3>Threat hunting</h3><p>Added Antivermis signature updates with HTTPS-only remote feeds, SHA-256 verification, parser validation, and atomic installation.</p><code>antivermis --update-db URL DB</code></article>

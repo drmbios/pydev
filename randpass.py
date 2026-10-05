@@ -19,10 +19,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if len(args) > 1:
             raise ValueError
+        if args == ['--quantum']:
+            print(secrets.token_hex(32))
+            return 0
         print(generate(int(args[0]) if args else 24))
         return 0
     except ValueError:
-        print("usage: randpass.py [LENGTH:8-4096]", file=sys.stderr)
+        print("usage: randpass.py [LENGTH:8-4096|--quantum]", file=sys.stderr)
         return 2
 
 

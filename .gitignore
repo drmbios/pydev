@@ -102,3 +102,7 @@ ENV/
 
 # Native build output
 /bin/
+
+# Generated unencrypted key material is never source code.
+private.pem
+/pq-keys*/
