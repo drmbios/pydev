@@ -11,6 +11,8 @@ timezone.
   `qsim`, and `qbudget` (32 native tools total).
 - Optional OpenSSL-backed ML-KEM/ML-DSA key generation in new owner-only
   directories, with bounded shell-free subprocesses and no classical fallback.
+- Allowlisted OpenSSL installations instead of arbitrary executable overrides
+  or PATH lookup, following the new-command CodeQL review.
 - A restricted, bounded OpenQASM 2 parser, dependency-depth report, ideal
   10-qubit simulator, and no-allocation statevector memory estimator.
 - `randpass --quantum`: 256 bits of OS-random entropy encoded as hexadecimal;

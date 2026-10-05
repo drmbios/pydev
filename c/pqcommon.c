@@ -29,10 +29,16 @@ int pq_run(char *const args[], int input, unsigned char *output, size_t *length)
     int pipes[2], status = 0, eof = 0, done = 0, result = -1;
     pid_t pid;
     double start = now();
-    const char *exe = getenv("PYDEV_OPENSSL");
+    const char *requested = getenv("PYDEV_OPENSSL");
+    const char *exe = "/usr/bin/openssl";
     *length = 0;
-    if (!exe) exe = "openssl";
-    else if (*exe != '/') { fputs("PYDEV_OPENSSL must be an absolute executable path\n",stderr); return -1; }
+    if (requested) {
+        if (!strcmp(requested,"/usr/bin/openssl")) exe = "/usr/bin/openssl";
+        else if (!strcmp(requested,"/usr/local/bin/openssl")) exe = "/usr/local/bin/openssl";
+        else if (!strcmp(requested,"/opt/homebrew/opt/openssl@3/bin/openssl")) exe = "/opt/homebrew/opt/openssl@3/bin/openssl";
+        else if (!strcmp(requested,"/usr/local/opt/openssl@3/bin/openssl")) exe = "/usr/local/opt/openssl@3/bin/openssl";
+        else { fputs("PYDEV_OPENSSL must select a documented allowlisted OpenSSL installation\n",stderr); return -1; }
+    }
     if (start < 0 || pipe(pipes)) return -1;
     pid = fork();
     if (pid < 0) { close(pipes[0]); close(pipes[1]); return -1; }
@@ -46,7 +52,7 @@ int pq_run(char *const args[], int input, unsigned char *output, size_t *length)
         if (nullfd > 2) close(nullfd);
         if (setenv("OPENSSL_CONF","/dev/null",1) || unsetenv("OPENSSL_MODULES") ||
             unsetenv("OPENSSL_ENGINES")) _exit(126);
-        execvp(exe,args); _exit(127);
+        execv(exe,args); _exit(127);
     }
     close(pipes[1]);
     (void)setpgid(pid,pid);

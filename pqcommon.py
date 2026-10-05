@@ -1,4 +1,4 @@
-"""Shell-free bounded OpenSSL invocation. Caller-selected executable is trusted."""
+"""Shell-free bounded invocation of an allowlisted OpenSSL installation."""
 import os
 import selectors
 import signal
@@ -7,10 +7,16 @@ import time
 
 ALGORITHMS = ('ML-KEM-768', 'ML-KEM-1024', 'ML-DSA-65', 'ML-DSA-87')
 
+def backend():
+    requested = os.environ.get('PYDEV_OPENSSL', '/usr/bin/openssl')
+    for path in ('/usr/bin/openssl', '/usr/local/bin/openssl',
+                 '/opt/homebrew/opt/openssl@3/bin/openssl', '/usr/local/opt/openssl@3/bin/openssl'):
+        if requested == path:
+            return path
+    raise ValueError('PYDEV_OPENSSL must select a documented allowlisted OpenSSL installation')
+
 def run(arguments, input_fd=None):
-    exe = os.environ.get('PYDEV_OPENSSL', 'openssl')
-    if 'PYDEV_OPENSSL' in os.environ and not os.path.isabs(exe):
-        raise ValueError('PYDEV_OPENSSL must be an absolute executable path')
+    exe = backend()
     env = dict(os.environ, OPENSSL_CONF='/dev/null')
     env.pop('OPENSSL_MODULES', None)
     env.pop('OPENSSL_ENGINES', None)

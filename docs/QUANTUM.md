@@ -51,8 +51,11 @@ export PYDEV_OPENSSL=/opt/homebrew/opt/openssl@3/bin/openssl
 bin/pqcheck
 ```
 
-The override must be an absolute executable path. Otherwise the caller's trusted
-`PATH` supplies `openssl`. No shell is used. OpenSSL config loading is disabled
+The override selects one of four explicit allowlisted installations:
+`/usr/bin/openssl` (default), `/usr/local/bin/openssl`,
+`/opt/homebrew/opt/openssl@3/bin/openssl`, or `/usr/local/opt/openssl@3/bin/openssl`.
+Arbitrary paths and `PATH` lookup are rejected. The selected installation and
+its parent directories must be trusted. No shell is used. Config loading is disabled
 (`OPENSSL_CONF=/dev/null`) and provider/engine path overrides are removed. Only
 the default provider is requested; custom/FIPS-provider integration is not
 implemented. This toolkit is not FIPS-validated.
@@ -154,7 +157,8 @@ PYDEV_REQUIRE_PQ=1 python3 -m unittest discover -v -s tests -p test_quantum.py
 
 Tests cover C/Python parity, Bell states, phase gates, control/target order,
 normalization, malformed/oversized files, FIFO/symlink rejection, resource limits,
-output flooding, timeouts, no-overwrite behavior, permissions, and OpenSSL
+runner output flooding/timeouts, executable allowlisting, no-overwrite
+behavior, permissions, and OpenSSL
 interoperability. The Debian trixie CI job requires a working PQ backend.
 Sanitizers and tests do not prove absence of leaks, denial-of-service paths,
 cryptographic implementation flaws, or undiscovered bugs.

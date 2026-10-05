@@ -3,11 +3,14 @@ import os
 from pathlib import Path
 import random
 import re
+import shutil
 import stat
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
+import pqcommon
 
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = 'OPENQASM 2.0; include "qelib1.inc"; qreg q[2]; '
@@ -133,8 +136,11 @@ class QuantumTools(unittest.TestCase):
         helper = self.path/'noisy-openssl'
         helper.write_text('#!'+sys.executable+'\nimport os\nos.write(1,b"x"*70000)\n')
         helper.chmod(0o700)
-        for command in self.commands('pqcheck'):
-            self.run_tool(command,env=dict(env,PYDEV_OPENSSL=str(helper)),code=2)
+        # Inject a child in the Python runner only; production executable selection
+        # is restricted in both editions, never relaxed for these fault tests.
+        with mock.patch('pqcommon.backend',return_value=str(helper)):
+            with self.assertRaisesRegex(ValueError,'output budget'):
+                pqcommon.run(['version'])
         for i,command in enumerate(self.commands('pqkey')):
             self.run_tool(command,'RSA',self.path/f'bad{i}',env=env,code=2)
             self.assertFalse((self.path/f'bad{i}').exists())
@@ -146,17 +152,52 @@ class QuantumTools(unittest.TestCase):
         helper = self.path/'slow-openssl'
         helper.write_text('#!'+sys.executable+'\nimport time\ntime.sleep(30)\n')
         helper.chmod(0o700)
-        for command in self.commands('pqcheck'):
-            self.run_tool(command,env=dict(os.environ,PYDEV_OPENSSL=str(helper)),code=2)
+        with mock.patch('pqcommon.backend',return_value=str(helper)):
+            with self.assertRaisesRegex(ValueError,'timeout'):
+                pqcommon.run(['version'])
+
+    def test_c_runner_budgets(self):
+        compiler = shutil.which('cc')
+        if not compiler:
+            if os.environ.get('PYDEV_REQUIRE_PQ'):
+                self.fail('C compiler required')
+            self.skipTest('C compiler unavailable')
+        # Exercise the production runner against the real allowlisted backend.
+        # Excess random output exceeds its cap; a held-open empty input pipe
+        # blocks pkey until the wall-clock watchdog kills and reaps the child.
+        source = self.path/'runner.c'
+        source.write_text('''#include "pqcommon.h"
+#include <stddef.h>
+#include <unistd.h>
+int main(int argc, char **argv) {
+    unsigned char data[PQ_OUTPUT]; size_t n; int result, fds[2];
+    char *flood[] = {"openssl", "rand", "70000", NULL};
+    char *blocked[] = {"openssl", "pkey", "-pubout", NULL};
+    (void)argv;
+    if (argc == 1) return pq_run(flood,-1,data,&n) ? 0 : 1;
+    if (pipe(fds)) return 1;
+    result = pq_run(blocked,fds[0],data,&n);
+    close(fds[0]); close(fds[1]);
+    return result ? 0 : 1;
+}
+''')
+        binary = self.path/'runner'
+        subprocess.run([compiler,'-std=c11','-I',str(ROOT/'c'),str(source),
+                        str(ROOT/'c/pqcommon.c'),'-o',str(binary)],check=True,timeout=30,capture_output=True)
+        import time
+        self.run_tool([str(binary)])
+        start = time.monotonic()
+        self.run_tool([str(binary)],'timeout')
+        self.assertGreater(time.monotonic()-start,9)
 
     def openssl(self, *args, expected=0):
-        exe = os.environ.get('PYDEV_OPENSSL','openssl')
+        exe = pqcommon.backend()
         p = subprocess.run([exe]+list(map(str,args)),capture_output=True,timeout=10)
         self.assertEqual(p.returncode,expected,p.stderr.decode(errors='replace'))
         return p.stdout
 
     def test_pq_key_interoperability(self):
-        exe = os.environ.get('PYDEV_OPENSSL','openssl')
+        exe = pqcommon.backend()
         try:
             p = subprocess.run([exe,'list','-kem-algorithms'],capture_output=True,timeout=10)
             capable = p.returncode == 0 and b'ML-KEM-768' in p.stdout
