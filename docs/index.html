@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Twenty-seven hardened command-line tools implemented in native C11 and Python.">
+  <meta name="description" content="Hardened C11 and Python command-line tools with a read-only AI operations interface.">
   <meta name="theme-color" content="#08110f">
   <meta property="og:title" content="pydev — small tools, rebuilt properly">
-  <meta property="og:description" content="Twenty-seven C11 and Python tools with bounded inputs, sanitizer checks, Unix administration, and threat hunting.">
+  <meta property="og:description" content="C11 and Python tools with bounded inputs, structured evidence, local MCP, Unix administration, and threat hunting.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://drmbios.github.io/pydev/">
   <meta name="twitter:card" content="summary">
@@ -21,6 +21,9 @@
     <a class="brand" href="#top" aria-label="pydev home"><span>~/</span>pydev</a>
     <nav aria-label="Main navigation">
       <a href="#tools">Tools</a>
+      <a href="#quantum">Quantum / PQC</a>
+      <a href="#ai">AI interface</a>
+      <a href="#platforms">Platforms</a>
       <a href="#updates">Updates</a>
       <a href="#security">Security</a>
       <a href="#build">Build</a>
@@ -33,13 +36,13 @@
       <div class="hero-copy">
         <p class="eyebrow"><span class="pulse"></span> C11 · POSIX · OPEN SOURCE</p>
         <h1>Small tools.<br><em>Rebuilt properly.</em></h1>
-        <p class="lede">Twenty-seven focused command-line tools now ship in both native C11 and readable Python—with bounded inputs, Unix administration, threat hunting, and tests designed to break them.</p>
+        <p class="lede">Focused command-line tools in native C11 and readable Python—with bounded inputs, Unix administration, threat hunting, and a read-only interface for local AI troubleshooting.</p>
         <div class="hero-actions">
           <a class="button primary" href="#build">Build the toolkit</a>
           <a class="button secondary" href="https://github.com/drmbios/pydev">View source ↗</a>
         </div>
         <dl class="metrics" aria-label="Project highlights">
-          <div><dt>2×27</dt><dd>C + Python editions</dd></div>
+          <div><dt>C + Py</dt><dd>independent editions</dd></div>
           <div><dt>bounded</dt><dd>input budgets</dd></div>
           <div><dt>0</dt><dd>shell calls</dd></div>
         </dl>
@@ -48,7 +51,7 @@
         <div class="terminal-bar"><span></span><span></span><span></span><b>pydev — zsh</b></div>
         <pre><code><span class="dim">$</span> git clone https://github.com/drmbios/pydev
 <span class="dim">$</span> cd pydev &amp;&amp; make
-<span class="ok">✓</span> built 27 native tools
+<span class="ok">✓</span> built 32 native tools
 
 <span class="dim">$</span> bin/cntr README.md
 a 131
@@ -98,12 +101,74 @@ c 38
       </div>
     </section>
 
+    <section class="section" id="quantum">
+      <div class="section-heading">
+        <div><p class="eyebrow">NEW / QUANTUM HOSTS + PQC</p><h2>Real capabilities.<br>Clear boundaries.</h2></div>
+        <p>Five new C11 and Python tools for classical Linux/macOS hosts: OpenSSL-backed post-quantum keys, bounded circuit validation, ideal simulation, and memory planning. No physical QPU or quantum RNG is implied.</p>
+      </div>
+      <div class="tool-grid">
+        <article class="tool-card"><span class="tool-number">27</span><div class="tool-icon">PQ</div><h3>pqcheck</h3><p>Inventory local OpenSSL KEM and signature algorithms. Check for ML-KEM and ML-DSA; availability is not a security certification.</p><code>pqcheck</code></article>
+        <article class="tool-card featured"><span class="tool-number">28</span><div class="tool-icon">KEY</div><h3>pqkey</h3><p>Generate ML-KEM or ML-DSA keys with OpenSSL 3.5+. New owner-only directory, no overwrite, no classical fallback. Private keys are unencrypted: protect them.</p><code>pqkey ML-KEM-768 pq-keys</code></article>
+        <article class="tool-card"><span class="tool-number">29</span><div class="tool-icon">QASM</div><h3>qasmcheck</h3><p>Validate a documented OpenQASM 2 subset and report qubits, gates, and dependency depth. Bounded to 20 qubits and 2,048 gates.</p><code>qasmcheck examples/bell.qasm</code></article>
+        <article class="tool-card featured"><span class="tool-number">30</span><div class="tool-icon">|ψ&gt;</div><h3>qsim</h3><p>Simulate ideal circuits on a CPU and print basis-state probabilities. Up to 10 qubits; no shots, noise model, or hardware backend.</p><code>qsim examples/bell.qasm</code></article>
+        <article class="tool-card"><span class="tool-number">31</span><div class="tool-icon">RAM</div><h3>qbudget</h3><p>Estimate dense complex128 statevector memory without allocating it. Thirty qubits need 16 GiB of payload, before runtime overhead.</p><code>qbudget 30</code></article>
+        <article class="tool-card"><span class="tool-number">UPGRADED</span><div class="tool-icon">256</div><h3>randpass --quantum</h3><p>Generate 256 bits of OS-random entropy as 64 hex characters. A high-entropy secret—not a quantum RNG, cipher, or automatic protocol upgrade.</p><code>randpass --quantum</code></article>
+      </div>
+      <p>For Linux control hosts, pair these with <strong>coreinfo, syswatch, procexp, clockres, lsx, Antivermis</strong>, and structured file/system evidence. They inspect classical resources, not qubits or laboratory pulse timing.</p>
+      <div class="build-links">
+        <a href="https://github.com/drmbios/pydev/blob/master/docs/QUANTUM.md"><span>GUIDE</span><b>Examples, safety &amp; host selection →</b></a>
+        <a href="https://github.com/drmbios/pydev/blob/master/examples/bell.qasm"><span>CIRCUIT</span><b>Bell-state example →</b></a>
+        <a href="https://github.com/drmbios/pydev/blob/master/tests/test_quantum.py"><span>TESTS</span><b>Parity &amp; PQ interoperability →</b></a>
+      </div>
+    </section>
+
+    <section class="section" id="ai">
+      <div class="section-heading">
+        <div><p class="eyebrow">02 / STRUCTURED EVIDENCE</p><h2>Useful to humans.<br>Safe for local agents.</h2></div>
+        <p>The optional pydev AI adapter produces versioned JSON with evidence IDs, explicit coverage, units, capability discovery, and honest unsupported states.</p>
+      </div>
+      <div class="tool-grid">
+        <article class="tool-card featured"><span class="tool-number">JSON 1.0</span><div class="tool-icon">{ }</div><h3>Evidence contract</h3><p>Stable status, timestamps, platform, measurements, evidence, warnings, errors, and coverage for every collector.</p><code>python3 -m pydev_ai capabilities</code></article>
+        <article class="tool-card featured"><span class="tool-number">MCP</span><div class="tool-icon">AI</div><h3>Read-only server</h3><p>Twelve bounded stdio tools with strict filesystem roots and no shell, mutation, termination, installation, or network access.</p><code>python3 -m pydev_ai.mcp_server --root PATH</code></article>
+        <article class="tool-card"><span class="tool-number">FLOW</span><div class="tool-icon">CPU</div><h3>Pressure diagnosis</h3><p>Correlates correctly sampled host and process rates while separating facts, hypotheses, missing evidence, and next checks.</p><code>pydev-ai diagnose-pressure</code></article>
+        <article class="tool-card"><span class="tool-number">FLOW</span><div class="tool-icon">AV</div><h3>File investigation</h3><p>Connects file identity, bounded inspection, Antivermis indicators, startup metadata, and running-path observations.</p><code>pydev-ai --root PATH investigate-file FILE</code></article>
+      </div>
+      <div class="command-box">
+        <div class="command-tabs"><span>OPTIONAL LOCAL MCP</span></div>
+        <pre><code><span>$</span> python3 -m pip install -e '.[mcp]'
+<span>$</span> python3 -m pydev_ai.mcp_server --root "$PWD"
+<span class="ok">✓</span> read-only stdio tools · no API key required</code></pre>
+      </div>
+      <div class="build-links">
+        <a href="https://github.com/drmbios/pydev/blob/master/docs/AI_TOOLKIT.md"><span>GUIDE</span><b>Structured interface →</b></a>
+        <a href="https://github.com/drmbios/pydev/blob/master/docs/MCP.md"><span>MCP</span><b>Configuration and boundaries →</b></a>
+        <a href="https://github.com/drmbios/pydev/blob/master/docs/ANTIVERMIS_RULES.md"><span>SECURITY</span><b>Rule inventory →</b></a>
+        <a href="schema/response-1.0.json"><span>SCHEMA</span><b>JSON contract 1.0 →</b></a>
+      </div>
+    </section>
+
+    <section class="section" id="platforms">
+      <div class="section-heading">
+        <div><p class="eyebrow">03 / PLATFORM SUPPORT</p><h2>Portable where honest.<br>Explicit where limited.</h2></div>
+        <p>Cross-platform collectors work on Linux and macOS. Linux-only counters report unsupported on other systems instead of returning made-up measurements.</p>
+      </div>
+      <div class="tool-grid">
+        <article class="tool-card featured"><span class="tool-number">LINUX + MAC</span><div class="tool-icon">FS</div><h3>Files and security</h3><p>Rooted file inspection, checksums, directory usage, hard-link discovery, startup inventory, and bounded Antivermis scanning.</p><code>inspect_file · scan_files · find_hardlinks</code></article>
+        <article class="tool-card"><span class="tool-number">LINUX</span><div class="tool-icon">/proc</div><h3>Live system evidence</h3><p>Delta-based CPU, disk, network, and process rates with PID identity, reset detection, explicit units, and bounded samples.</p><code>sample_system_metrics · list_processes</code></article>
+        <article class="tool-card"><span class="tool-number">OPTIONAL</span><div class="tool-icon">GPU</div><h3>AI infrastructure</h3><p>NVIDIA metrics use nvidia-smi when available. Inference telemetry requires an exact configured host and explicit network permission.</p><code>pydev-ai ai-health</code></article>
+        <article class="tool-card"><span class="tool-number">BOUNDARY</span><div class="tool-icon">RO</div><h3>Read-only by design</h3><p>The AI interface cannot run a shell, install packages, alter files, terminate processes, or expose process environments and credential stores.</p><code>get_capabilities</code></article>
+      </div>
+    </section>
+
     <section class="section" id="updates">
       <div class="section-heading">
-        <div><p class="eyebrow">02 / RECENT UPDATES</p><h2>One week.<br>Four focused releases.</h2></div>
+        <div><p class="eyebrow">04 / RECENT UPDATES</p><h2>Built in layers.<br>Verified at boundaries.</h2></div>
         <p>The project now maintains matching Python and C11 editions, with security boundaries documented and exercised in both.</p>
       </div>
       <div class="tool-grid">
+        <article class="tool-card featured"><span class="tool-number">OCT 05</span><div class="tool-icon">PQ</div><h3>Quantum-host toolkit</h3><p>Five bounded C/Python additions, post-quantum OpenSSL key interoperability, high-entropy secret generation, and a curated host-tool guide.</p><code>pqcheck · pqkey · qasmcheck · qsim · qbudget</code></article>
+        <article class="tool-card"><span class="tool-number">OCT 04</span><div class="tool-icon">SAFE</div><h3>Security review</h3><p>Fixed scan budgets, descriptor races, telemetry logic, and redaction gaps. Enabled GitHub security scans and protected-branch checks.</p><code>CodeQL · secret scanning · dependency review</code></article>
+        <article class="tool-card featured"><span class="tool-number">SEP 13</span><div class="tool-icon">AI</div><h3>Operations interface</h3><p>Added structured evidence collectors, deterministic workflows, correct sampled metrics, strict filesystem roots, and optional local MCP.</p><code>make python-check · make mcp-check</code></article>
         <article class="tool-card featured"><span class="tool-number">AUG 23</span><div class="tool-icon">PY</div><h3>Python parity</h3><p>Added independent Python 3.9+ counterparts for every user-facing native tool, including Antivermis and the Linux administration suite.</p><code>make python-check</code></article>
         <article class="tool-card featured"><span class="tool-number">AUG 19</span><div class="tool-icon">AV</div><h3>Threat hunting</h3><p>Added Antivermis signature updates with HTTPS-only remote feeds, SHA-256 verification, parser validation, and atomic installation.</p><code>antivermis --update-db URL DB</code></article>
         <article class="tool-card"><span class="tool-number">AUG 15</span><div class="tool-icon">SYS</div><h3>Unix utility suite</h3><p>Added Linux administration plus six cross-platform Sysinternals/NirSoft-inspired terminal tools.</p><code>traceflow · syswatch · coreinfo</code></article>
@@ -114,7 +179,7 @@ c 38
 
     <section class="security" id="security">
       <div class="security-copy">
-        <p class="eyebrow">03 / BUILT DEFENSIVELY</p>
+        <p class="eyebrow">05 / BUILT DEFENSIVELY</p>
         <h2>Inputs are hostile.<br>Tools should be calm.</h2>
         <p>These utilities assume files can be oversized, strings malformed, and arguments malicious. Limits are part of the product—not an afterthought.</p>
         <a href="https://github.com/drmbios/pydev/tree/master/tests">Explore the abuse tests ↗</a>
@@ -129,8 +194,8 @@ c 38
 
     <section class="section build-section" id="build">
       <div class="section-heading">
-        <div><p class="eyebrow">04 / GET STARTED</p><h2>Three commands.</h2></div>
-        <p>You need a C11 compiler, Make, and the SQLite 3 development library. Python is only required for the optional pip wrapper.</p>
+        <div><p class="eyebrow">06 / GET STARTED</p><h2>Three commands.</h2></div>
+        <p>You need a C11 compiler and Make. SQLite is optional; Python 3.9+ runs the Python and structured tools, while MCP needs Python 3.10+.</p>
       </div>
       <div class="command-box">
         <div class="command-tabs"><span>BUILD</span><button type="button" id="copy-command" aria-label="Copy build commands">COPY</button></div>
@@ -139,9 +204,9 @@ c 38
 <span>$</span> make &amp;&amp; make check</code></pre>
       </div>
       <div class="build-links">
-        <a href="https://github.com/drmbios/pydev#pydev-native-tools"><span>README</span><b>Full documentation →</b></a>
+        <a href="https://github.com/drmbios/pydev#pydev-c-and-python-tools"><span>README</span><b>Full documentation →</b></a>
         <a href="https://github.com/drmbios/pydev/blob/master/LICENSE"><span>LICENSE</span><b>Apache 2.0 →</b></a>
-        <a href="https://github.com/drmbios/pydev/blob/master/CHANGELOG.md"><span>CHANGELOG</span><b>August 9–16 history →</b></a>
+        <a href="https://github.com/drmbios/pydev/blob/master/CHANGELOG.md"><span>CHANGELOG</span><b>Development history →</b></a>
         <a href="https://github.com/drmbios/pydev/pulls"><span>CONTRIBUTE</span><b>Open a pull request →</b></a>
       </div>
     </section>

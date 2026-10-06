@@ -48,9 +48,15 @@ int main(int argc, char **argv) {
     long requested = DEFAULT_LENGTH;
     size_t produced = 0;
 
+    if (argc == 2 && strcmp(argv[1], "--quantum") == 0) {
+        if (fill_random(random_bytes,32U)) return 1;
+        for (size_t i=0;i<32U;i++) printf("%02x",(unsigned)random_bytes[i]);
+        putchar('\n');
+        return ferror(stdout) ? 1 : 0;
+    }
     if (argc > 2 ||
         (argc == 2 && parse_long(argv[1], 8, MAX_PASSWORD_LENGTH, &requested) != 0)) {
-        fprintf(stderr, "usage: %s [LENGTH:8-%ld]\n", argv[0], MAX_PASSWORD_LENGTH);
+        fprintf(stderr, "usage: %s [LENGTH:8-%ld|--quantum]\n", argv[0], MAX_PASSWORD_LENGTH);
         return 2;
     }
     while (produced < (size_t)requested) {

@@ -3,6 +3,80 @@
 All notable project changes are recorded here. Dates use the Asia/Baku project
 timezone.
 
+## 2026-10-05
+
+### Added — quantum-host and post-quantum tools
+
+- Five new independent C/Python command pairs: `pqcheck`, `pqkey`, `qasmcheck`,
+  `qsim`, and `qbudget` (32 native tools total).
+- Optional OpenSSL-backed ML-KEM/ML-DSA key generation in new owner-only
+  directories, with bounded shell-free subprocesses and no classical fallback.
+- Allowlisted OpenSSL installations instead of arbitrary executable overrides
+  or PATH lookup, following the new-command CodeQL review.
+- A restricted, bounded OpenQASM 2 parser, dependency-depth report, ideal
+  10-qubit simulator, and no-allocation statevector memory estimator.
+- `randpass --quantum`: 256 bits of OS-random entropy encoded as hexadecimal;
+  explicitly not a quantum RNG, cipher, or protocol upgrade.
+- Bell-state example, cross-edition regression tests, PQ interoperability tests,
+  and a Linux CI job requiring a working post-quantum OpenSSL backend.
+- A curated Linux quantum-control-host tool selection and a Pages section with
+  practical examples, limitations, and links to the detailed quantum guide.
+
+## 2026-10-04
+
+### Fixed and hardened
+
+- Enforced C/Python Antivermis byte limits while files grow, bounded C directory
+  visits, retained admitted files during truncated Python scans, and aligned
+  JSON exit codes with findings and incomplete coverage.
+- Anchored recursive C scans to directory descriptors and changed SAR input to
+  validate the opened descriptor without a blocking special-file race. SAR
+  byte accounting now includes NUL bytes, and C CPU totals exclude duplicate
+  guest counters.
+- Suppressed hex previews containing detected secrets and redacted private-key
+  bodies. Bounded startup enumeration and preserved partial results when a
+  startup file is too large.
+- Rechecked process identity before publishing metadata, prevented missing-file
+  correlations with unknown executable paths, and propagated partial workflow
+  coverage. Rejected malformed, negative, boolean, and non-finite telemetry.
+- Fixed largest-first directory sorting and avoided a second recursive size
+  scan. Codebreaker now accepts only ASCII digits and uses system randomness.
+- Rejected HTTPS update downgrades before following redirects and prevented
+  remote Python signature manifests from reading local database URLs.
+- Added security regressions, a vulnerability-reporting policy, Dependabot
+  configuration, dependency review, commit-pinned Actions, and restricted Pages
+  deployment to the default branch.
+
+Repository-side controls were enabled separately: CodeQL extended queries,
+secret scanning/push protection, vulnerability alerts, Dependabot security
+updates, private reporting, read-only default workflow tokens, and protected
+`master`. See `docs/SECURITY_REVIEW.md` for verification and alert-triage limits.
+
+## 2026-09-13
+
+### Added
+
+- `pydev_ai`, a versioned structured JSON adapter with explicit evidence,
+  coverage, capabilities, status, units, timestamps, and structured errors.
+- Deterministic system-pressure, file-indicator, and AI-worker-health workflows.
+- Optional official MCP Python SDK v2 stdio server with twelve read-only tools,
+  strict filesystem roots, concurrency/work/response limits, and no shell,
+  mutation, or network tools.
+- Optional NVIDIA and explicitly configured inference-service telemetry that
+  reports unsupported or missing measurements without fabricated values.
+- Contract, metric, boundary, prompt-injection, timeout, counter-reset, PID
+  reuse, and real MCP session tests.
+
+### Fixed and hardened
+
+- Correct delta-based Linux CPU, process, network, and disk rates, including
+  guest-time handling, PID identity, counter resets, interface churn, and
+  top-level block-device accounting.
+- Added structured JSON modes to selected existing C/Python commands and a
+  stable, machine-discoverable Antivermis rule inventory.
+- Rooted file access now rejects symlink escapes and blocking special files;
+  previews redact likely secrets and treat collected text as untrusted data.
+
 ## 2026-08-23
 
 ### Added

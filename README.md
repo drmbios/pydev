@@ -7,12 +7,17 @@ also has a readable Python counterpart with the same purpose and safety model.
 Neither edition wraps or replaces the other. This makes the repository useful
 for everyday terminal work, portability, comparison, and learning.
 
+The [quantum-host and post-quantum guide](docs/QUANTUM.md) covers five new tools,
+the selected Linux host utilities, OpenSSL requirements, safe key handling,
+circuit examples, and the difference between PQ cryptography and a physical QPU.
+
 ## Requirements
 
 - A C11 compiler (`cc`, GCC, or Clang)
 - POSIX-compatible system (Linux, macOS, or BSD)
 - SQLite 3 development library for full `sql` functionality (optional)
-- Python 3 and pip only when using `qpipper`
+- Python 3.9+ for Python tools and cross-edition tests; Python 3.10+ for optional MCP support
+- OpenSSL 3.5+ executable for post-quantum key generation (optional; no new C library dependency)
 
 ## Build
 
@@ -36,8 +41,18 @@ bin/antivermis --db signatures.hsb ~/Downloads
 python3 antivermis.py --db signatures.hsb ~/Downloads
 ```
 
+For the versioned JSON collectors, evidence-linked workflows, and optional
+read-only MCP server, see [AI toolkit](docs/AI_TOOLKIT.md), [MCP setup](docs/MCP.md),
+and the [response schema](docs/schema/response-1.0.json). The machine interface
+is additive: existing C binaries and Python commands remain available.
+
 Executables are written to `bin/`:
 
+- `pqcheck` — inventory local OpenSSL KEM and signature algorithms
+- `pqkey ALGORITHM NEW_DIRECTORY` — generate ML-KEM or ML-DSA keys without overwrite
+- `qasmcheck FILE` — validate/count a bounded, documented OpenQASM 2 subset
+- `qsim FILE` — ideal CPU statevector simulation, up to 10 qubits and 2,048 gates
+- `qbudget QUBITS` — estimate complex128 statevector payload memory without allocation
 - `cntr FILE` — case-insensitive ASCII letter frequencies
 - `codebreaker [ATTEMPTS]` — four-digit code game
 - `parser_html FILE` — extract quoted `href` values
@@ -50,7 +65,7 @@ Executables are written to `bin/`:
 - `checksum FILE...` — CRC-32 checksums for integrity comparisons
 - `hexview FILE [MAX_BYTES]` — bounded hexadecimal and ASCII file view
 - `stringsx FILE [MIN_LENGTH]` — extract printable strings from binary files
-- `randpass [LENGTH]` — securely generate an unbiased random password
+- `randpass [LENGTH|--quantum]` — unbiased passwords or a 256-bit OS-random hex secret
 - `syscallx NUMBER...` — translate Linux x86-64 syscall numbers into readable explanations
 - `lsx [-aSr] [PATH]` — list entries with numeric permissions and recursive real sizes
 - `traceflow COMMAND [ARG...]` — trace syscall and child-process dependencies as a tree (Linux x86-64)
@@ -219,9 +234,13 @@ the fallback build explicitly. The updater similarly auto-detects libcurl; run
   explainable threat indicators plus opt-in, hash-verified database updates.
 - Added repeatable functional, oversized-input, and injection-resistance tests.
 
-See [CHANGELOG.md](CHANGELOG.md) for the dated August 9–23 development history.
+See [CHANGELOG.md](CHANGELOG.md) for the dated development history.
 
 ## Safety and resource limits
+
+Report vulnerabilities privately using the [security policy](SECURITY.md).
+The [October security review](docs/SECURITY_REVIEW.md) records the applied GitHub
+controls, fixes, and remaining limitations.
 
 Security limits:
 

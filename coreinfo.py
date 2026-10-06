@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import platform
+import argparse
+import json
 
 
 def information() -> dict[str, str]:
@@ -18,6 +20,14 @@ def information() -> dict[str, str]:
             "page bytes": str(page), "physical memory bytes": memory}
 
 
-if __name__ == "__main__":
-    for key, value in information().items():
-        print(f"{key}: {value}")
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument("--json", action="store_true"); args = parser.parse_args(argv)
+    if args.json:
+        from pydev_ai.collectors import get_system_info
+        print(json.dumps(get_system_info(), sort_keys=True))
+    else:
+        for key, value in information().items(): print(f"{key}: {value}")
+    return 0
+
+
+if __name__ == "__main__": raise SystemExit(main())

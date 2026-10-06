@@ -14,6 +14,7 @@ import ssl
 import stat
 import tempfile
 import urllib.request
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlparse
@@ -73,8 +74,10 @@ def hash_file(path: Path, limit: int) -> tuple[str, bytes, int]:
     try:
         before = os.fstat(descriptor)
         if not stat.S_ISREG(before.st_mode) or before.st_size > limit: raise ValueError("file exceeds scan limit")
-        while chunk := os.read(descriptor, 65_536):
-            total += len(chunk); digest.update(chunk)
+        while chunk := os.read(descriptor, min(65_536, limit + 1 - total)):
+            total += len(chunk)
+            if total > limit: raise ValueError("file exceeds scan limit during read")
+            digest.update(chunk)
             if len(sample) < 65_536: sample.extend(chunk[:65_536 - len(sample)])
         after = os.fstat(descriptor)
         if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns):
@@ -86,7 +89,7 @@ def hash_file(path: Path, limit: int) -> tuple[str, bytes, int]:
 def scan(paths: list[Path], signatures: dict[str, list[Signature]], max_files: int = 100_000,
          max_file_bytes: int = 32 * 1024 * 1024, max_total: int = 1024 * 1024 * 1024) -> ScanResult:
     result = ScanResult(); stack = [(path, 0) for path in reversed(paths)]; entries = 0
-    while stack and not result.limited:
+    while stack:
         path, depth = stack.pop()
         entries += 1
         if entries > max_files: result.limited = True; break
@@ -106,7 +109,7 @@ def scan(paths: list[Path], signatures: dict[str, list[Signature]], max_files: i
             continue
         if result.files >= max_files or result.bytes + info.st_size > max_total: result.limited = True; break
         result.files += 1
-        try: digest, sample, size = hash_file(path, max_file_bytes)
+        try: digest, sample, size = hash_file(path, min(max_file_bytes, max_total - result.bytes))
         except (OSError, ValueError): result.errors += 1; continue
         result.bytes += size
         if digest == EICAR_SHA256: result.findings.append(("AV-TEST-001", path, "harmless EICAR test signature"))
@@ -117,8 +120,18 @@ def scan(paths: list[Path], signatures: dict[str, list[Signature]], max_files: i
             result.findings.append(("AV-MINER-001", path, "compound miner/Stratum indicators"))
         if info.st_mode & stat.S_IXUSR and str(path).startswith(("/tmp/", "/var/tmp/", "/dev/shm/")):
             result.findings.append(("AV-PATH-001", path, "executable in temporary storage"))
-        if len(result.findings) >= MAX_FINDINGS: result.limited = True
+        if len(result.findings) >= MAX_FINDINGS:
+            del result.findings[MAX_FINDINGS:]
+            result.limited = True
+            break
     return result
+
+
+class HTTPSRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, new_url):
+        if urlparse(new_url).scheme != "https":
+            raise ValueError("update redirects must remain HTTPS")
+        return super().redirect_request(request, fp, code, message, headers, new_url)
 
 
 def _download(url: str, limit: int) -> bytes:
@@ -126,7 +139,8 @@ def _download(url: str, limit: int) -> bytes:
     if parsed.scheme not in ("https", "file") or any(ord(character) <= 32 or ord(character) == 127 for character in url):
         raise ValueError("update URL must use HTTPS or file:// without control characters")
     request = urllib.request.Request(url, headers={"User-Agent": "antivermis-python/1"})
-    with urllib.request.urlopen(request, timeout=60, context=ssl.create_default_context()) as response:
+    opener = urllib.request.build_opener(HTTPSRedirect(), urllib.request.HTTPSHandler(context=ssl.create_default_context()))
+    with opener.open(request, timeout=60) as response:
         if urlparse(response.geturl()).scheme not in ("https", "file"): raise ValueError("unsafe update redirect")
         data = response.read(limit + 1)
     if len(data) > limit: raise ValueError("update exceeds size limit")
@@ -152,6 +166,8 @@ def parse_manifest(data: bytes) -> tuple[str, str, str]:
 
 def update_database(manifest_url: str, destination: Path, check_only: bool = False) -> str:
     version, database_url, expected = parse_manifest(_download(manifest_url, MAX_MANIFEST))
+    if urlparse(manifest_url).scheme == "https" and urlparse(database_url).scheme != "https":
+        raise ValueError("remote manifests must reference an HTTPS database")
     try: current = hashlib.sha256(read_bytes(destination, MAX_DATABASE)).hexdigest() if destination.is_file() and not destination.is_symlink() else None
     except OSError: current = None
     if current == expected: return f"database is current (version {version})"
@@ -190,6 +206,7 @@ def system_paths() -> list[Path]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(); parser.add_argument("paths", nargs="*"); parser.add_argument("--db", type=Path)
     parser.add_argument("--system", action="store_true"); parser.add_argument("--max-files", type=int, default=100_000); parser.add_argument("--max-bytes", type=int, default=32)
+    parser.add_argument("--json", action="store_true")
     parser.add_argument("--check-update", nargs=2, metavar=("MANIFEST_URL", "DATABASE")); parser.add_argument("--update-db", nargs=2, metavar=("MANIFEST_URL", "DATABASE"))
     args = parser.parse_args(argv)
     try:
@@ -197,6 +214,18 @@ def main(argv: list[str] | None = None) -> int:
         if action: print(update_database(action[0], Path(action[1]), bool(args.check_update))); return 0
         paths = [Path(value) for value in args.paths] + (system_paths() if args.system else [])
         if not paths or not 1 <= args.max_files <= 1_000_000 or not 1 <= args.max_bytes <= 64: raise ValueError("invalid or missing scan paths/limits")
+        if args.json:
+            from pydev_ai.collectors import scan_files
+            from pydev_ai.policy import RootPolicy
+            roots = []
+            for path_value in paths + ([args.db] if args.db else []):
+                resolved = path_value.expanduser().resolve(strict=True)
+                roots.append(str(resolved if resolved.is_dir() else resolved.parent))
+            response = scan_files(RootPolicy(roots), [str(path) for path in paths], str(args.db) if args.db else None,
+                                  args.max_files, args.max_bytes * 1024 * 1024)
+            print(json.dumps(response, sort_keys=True))
+            if response["status"] != "success": return 2
+            return 1 if response["data"].get("finding_count", 0) else 0
         result = scan(paths, load_database(args.db), args.max_files, args.max_bytes * 1024 * 1024)
         for rule, path, evidence in result.findings: print(f"{rule} {path}: {evidence}")
         print(f"files={result.files} bytes={result.bytes} findings={len(result.findings)} errors={result.errors}")

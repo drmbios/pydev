@@ -6,7 +6,8 @@ BIN_DIR := bin
 COMMON := c/common.c
 TOOLS := cntr codebreaker parser_html qpipper rdr2dot0 readjson sql contacts ttt write2file \
 	checksum hexview stringsx randpass syscallx lsx traceflow syswatch sessionx procexp \
-	coreinfo clockres numconv linkscan autostartx whoisx antivermis
+	coreinfo clockres numconv linkscan autostartx whoisx antivermis \
+	pqcheck pqkey qasmcheck qsim qbudget
 SQLITE_PROBE_CFLAGS := $(filter-out -g,$(CFLAGS))
 SQLITE_AVAILABLE ?= $(shell $(CC) $(CPPFLAGS) $(SQLITE_PROBE_CFLAGS) c/sqlite_probe.c $(LDFLAGS) -lsqlite3 -o /dev/null >/dev/null 2>&1 && echo 1 || echo 0)
 CURL_AVAILABLE ?= $(shell $(CC) $(CPPFLAGS) $(SQLITE_PROBE_CFLAGS) c/curl_probe.c $(LDFLAGS) -lcurl -o /dev/null >/dev/null 2>&1 && echo 1 || echo 0)
@@ -27,7 +28,7 @@ CURL_CPPFLAGS := -DPYDEV_HAVE_CURL=0
 CURL_LIBS :=
 endif
 
-.PHONY: all clean check python-check check-no-sqlite check-no-curl sanitize
+.PHONY: all clean check python-check mcp-check check-no-sqlite check-no-curl sanitize
 all: $(TOOLS:%=$(BIN_DIR)/%)
 
 $(BIN_DIR):
@@ -59,15 +60,24 @@ $(BIN_DIR)/antivermis: c/antivermis.c c/av_sha256.c c/av_update.c $(COMMON) c/av
 	$(CC) $(CPPFLAGS) $(CURL_CPPFLAGS) $(CFLAGS) c/antivermis.c c/av_sha256.c c/av_update.c $(COMMON) $(LDFLAGS) $(CURL_LIBS) -o $@
 $(BIN_DIR)/sql: c/sql.c | $(BIN_DIR)
 	$(CC) $(CPPFLAGS) $(SQLITE_CPPFLAGS) $(CFLAGS) $< $(LDFLAGS) $(SQLITE_LIBS) -o $@
+$(BIN_DIR)/pqcheck $(BIN_DIR)/pqkey: $(BIN_DIR)/%: c/%.c c/pqcommon.c c/pqcommon.h | $(BIN_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< c/pqcommon.c $(LDFLAGS) -o $@
+$(BIN_DIR)/qasmcheck $(BIN_DIR)/qsim $(BIN_DIR)/qbudget: $(BIN_DIR)/%: c/%.c c/quantum.c c/quantum.h | $(BIN_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< c/quantum.c $(LDFLAGS) -lm -o $@
 $(BIN_DIR)/%: c/%.c | $(BIN_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(LDFLAGS) -o $@
 
 check: all
 	sh tests/test_c_tools.sh
+	python3 -m unittest discover -v -s tests -p 'test_quantum.py'
 
 python-check:
 	python3 -m compileall -q .
 	python3 -m unittest -v test_apps.py
+	python3 -m unittest discover -v -s tests -p 'test_*.py'
+
+mcp-check:
+	python3 tests/mcp_integration.py
 
 check-no-sqlite: clean
 	$(MAKE) SQLITE_AVAILABLE=0 $(BIN_DIR)/sql

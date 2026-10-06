@@ -18,16 +18,38 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
       - name: Install SQLite development files
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
       - name: Strict release build and tests
         run: make clean && make -j2 && make check
       - name: Python counterparts and tests
         run: make python-check
+      - name: MCP stdio integration
+        run: python3 -m pip install '.[mcp]' && make mcp-check
       - name: Build without SQLite
         run: make check-no-sqlite
       - name: Build without libcurl
         run: make check-no-curl
       - name: Address and undefined-behavior sanitizers
         run: make sanitize
+
+  post-quantum:
+    runs-on: ubuntu-latest
+    container: debian:trixie-slim
+    timeout-minutes: 10
+    steps:
+      - name: Install compiler and OpenSSL 3.5+ backend
+        run: apt-get update && apt-get install -y --no-install-recommends build-essential python3 openssl ca-certificates git
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build both editions and require real PQ interoperability
+        env:
+          PYDEV_REQUIRE_PQ: '1'
+        run: make -j2 && python3 -m unittest discover -v -s tests -p test_quantum.py

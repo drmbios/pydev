@@ -2,13 +2,14 @@
 
 import argparse
 import random
+import secrets
 from typing import Optional, Tuple
 
 CODE_LENGTH = 4
 
 
 def generate_code(rng: Optional[random.Random] = None) -> str:
-    return "".join((rng or random).sample("0123456789", CODE_LENGTH))
+    return "".join((rng or secrets.SystemRandom()).sample("0123456789", CODE_LENGTH))
 
 
 def score_guess(code: str, guess: str) -> Tuple[int, int]:
@@ -18,7 +19,7 @@ def score_guess(code: str, guess: str) -> Tuple[int, int]:
 
 
 def valid_guess(guess: str) -> bool:
-    return len(guess) == CODE_LENGTH and guess.isdigit()
+    return len(guess) == CODE_LENGTH and all(digit in "0123456789" for digit in guess)
 
 
 def play(attempts: int = 8, code: Optional[str] = None) -> bool:
